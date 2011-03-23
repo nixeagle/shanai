@@ -1,6 +1,7 @@
 (defpackage #:pokemon
   (:use :cl)
-  (:import-from :eos #:is #:test))
+  (:import-from :eos #:is #:test)
+  (:import-from :alexandria :non-negative-fixnum))
 
 (in-package :pokemon)
 
@@ -120,6 +121,12 @@ Only released generations are I, II, III, IV, and V. So this corresponds to
   (:documentation "Description of a pokemon move."))
 
 
+(defmethod print-object ((obj move) stream)
+  (print-unreadable-object (obj stream :type t)
+    (format stream "~A ~A named ~A: POW ~A ACC ~A ~A/~A"
+            (category obj) (poketype obj)
+            (name obj) (power obj) (accuracy obj)
+            (pp obj) (pp-remaining obj))))
 
 ;;; Functions for manipulating an in memory movedex.
 (defmacro defmove (name description &rest r)
@@ -131,15 +138,6 @@ Only released generations are I, II, III, IV, and V. So this corresponds to
 
 (defun find-move-by-number (number)
   (declare (type valid-move-number number)))
-
-
-
-
-
-
-
-
-
 
 
 (defclass weather () ())
@@ -316,4 +314,189 @@ Docs: http://www.smogon.com/dp/articles/damage_formula#mod1"
 (defun do-battle (poke1 poke2)
   (declare (type battle-pokemon poke1 poke2))
   (list poke1 poke2))
+
+(deftype battle-box ()
+  "List of 1 to 6 BATTLE-POKEMON being brought along for a fight."
+  '(or (cons battle-pokemon null)
+    (cons battle-pokemon (cons battle-pokemon null))
+    (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon null)))
+    (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon null))))
+    (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon null)))))
+    (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon null))))))))
+
+(defun execute-move (move)
+  ;; Execute a particular move by poke1.
+  )
+
+
+
+(defun pokemon-population-count ()
+  "Return the total number of pokemon. Base + all forms.")
+
+(defun pokemon-visible-population-count ()
+  "Return the total number of visible pokemon. Base + all forms.")
+
+
+(defgeneric type1 (pokemon generation))
+(defgeneric type2 (pokemon generation))
+(defgeneric moves (pokemon generation))
+(defgeneric egg-moves (pokemon generation))
+(defgeneric level-moves (pokemon generation))
+(defgeneric tutor-moves (pokemon generation))
+(defgeneric tm-moves (pokemon generation))
+(defgeneric pre-evo-moves (pokemon generation))
+(defgeneric special-moves (pokemon generation))
+(defgeneric regular-moves (pokemon generation))
+(defgeneric dream-world-moves (pokemon generation))
+
+(defgeneric number-of-formes (pokemon generation))
+
+(defgeneric a-forme-shown)
+
+(defgeneric formep (pokemon generation))
+
+(defgeneric aestheticp (pokemon generation))
+
+(defgeneric non-aesthetic-forme (pokemon generation))
+(defgeneric original-forme (pokemon generation))
+
+(defgeneric has-formes-p (pokemon generation))
+
+(defgeneric formes (pokemon generation))
+
+(defgeneric visible-formes (pokemon generation))
+
+(defgeneric evos (pokemon generation))
+(defgeneric direct-evos (pokemon generation))
+
+(defgeneric has-eveloutions-p (pokemon generation))
+
+(defgeneric original-evolution (pokemon generation))
+(defgeneric pre-evolution (pokemon generation))
+(defgeneric in-evolution-chain-p (pokemon generation))
+(defgeneric base-stats (pokemon))
+(defgeneric exists (pokemon generation))
+(defgeneric abilities (pokemon generation))
+;Stat+Fullstat are what exactly!
+
+; Should not return Missingno
+(defun random-pokemon (generation))
+
+(defclass player ()
+  ((battle-team :initarg :team :type 'battle-box :accessor battle-team)
+   (name :initarg :name :type 'string :reader name))
+  (:documentation "Pokemon trainer information"))
+
+(defclass battle-configuration ()
+  ())
+
+(defgeneric sleep-clause-p (battle)
+  (:documentation "Is the sleep clause turned on?
+
+In PO, the sleep clause means that only one pokemon may be asleep on a team
+at one time."))
+
+(defclass team-battle ()
+  ())
+
+(defclass poke-battle ()
+  ())
+
+;;; around roughly line 86 battle.h
+(defgeneric team (player))
+(defgeneric battle-team (player))
+(defgeneric (setf battle-team) (player value))
+
+
+(defgeneric poke (battle player poke)
+  ;; poke seems to be an "optional" argument in the C++ source.
+  )
+
+(defgeneric random-opponent (battle slot))
+(defgeneric random-valid-opponent (battle slot))
+
+(defgeneric slot (battle player poke))
+
+(defgeneric can-target-p (battle attack attacker defender))
+(defgeneric are-adjacent-p (battle attacker defender))
+(defgeneric multiplesp (battle))
+
+(defgeneric are-partners-p (battle player1 player2))
+
+(defgeneric battle-log-filename (battle))
+
+(defgeneric turn (battle))
+(defgeneric (setf turn) (battle value)
+  (:documentation "Set a new non-negative-fixnum VALUE for turn in BATTLE>"))
+(defgeneric players (thing))
+(defgeneric (setf players) (thing value))
+
+(defgeneric sort-by-speed (battle))
+(defgeneric weather (thing))
+(defgeneric (setf weather) (thing value))
+(defclass battle ()
+  ((players :documentation "Player list."
+             :initarg :players
+             :accessor players)
+   (turn :documentation "Current turn number."
+         :type 'non-negative-fixnum
+         :initarg :turn :accessor turn)
+   (battlelog :documentation "Log of all actions during this battle."
+              :initarg :battlelog)
+   (weather :documentation "Current weather effect on the battle."
+            :initarg :weather :accessor weather))
+  (:default-initargs :turn 0 :weather :normal-weather))
+
+(deftype spot ()
+  "What position is the player in during a battle?
+
+:player1 corresponds to 0, :player2 corresponds to 1 and :spectator corresponds to -1."
+  '(member :spectator :player1 :player2))
+
+(defgeneric name (thing)
+  (:documentation "Return the name of THING as a string."))
+
+(defgeneric object-id (thing)
+  ;; Probably not useful in common lisp but who knows!
+  (:documentation "Integer identifier of THING."))
+
+
+(defun make-ai-player (&key name)
+  (make-instance 'player :name name :team (list (create-battle-pokemon 5 (battle-stats 21 9 6 10 8 12) 50))))
+
+(defun make-test-battle ()
+  (make-instance 'battle :players (list (make-ai-player :name "AI")
+                                        (make-ai-player :name "AI-OPP"))))
+
+(defparameter *battle* nil
+  "Current 'battle', use let bindings with this, not setf.")
+
+(defparameter *last-battle* nil
+  ;; For testing purposes only.
+  "Ok to use setf with this, for the prior simulated battle.")
+
+(defun main ()
+  "Calling this 'main' for lack of a better idea."
+  (let ((*battle* (make-test-battle)))
+    (setf *last-battle* *battle*)
+  ))
+
+(defgeneric player1 (thing))
+(defgeneric player2 (thing))
+
+(defmethod player1 ((obj battle))
+  "First player of 2 in a pokemon battle."
+  (first (players obj)))
+
+(defmethod player2 ((obj battle))
+  "Second player of 2 in a pokemon battle."
+  (second (players obj)))
+
+(defun pprint-detailed-battle-data (battle)
+  (format nil "Battle: Turn #~A Weather: ~A
+  P1: ~A        P2: ~A"
+          (turn battle)
+          (weather battle)
+          (name (player1 battle))
+          (name (player2 battle))))
 
