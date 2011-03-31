@@ -1,7 +1,9 @@
 (defpackage #:pokemon
   (:use :cl)
   (:import-from :eos #:is #:test)
-  (:import-from :alexandria :non-negative-fixnum))
+  (:import-from :alexandria :non-negative-fixnum)
+  (:import-from :split-sequence #:split-sequence)
+  (:import-from :iterate :iter :for :appending :collecting :generate :generating :next))
 
 (in-package :pokemon)
 
@@ -25,38 +27,54 @@ Returns the percentage chance that a particular hit will occur."
 
 
 (defclass pokemon ()
-  ((shinyp :initarg :shinyp :type 'boolean :readers (shinyp))
+  (;(shinyp :initarg :shinyp :type 'boolean :readers (shinyp))
    (number :initarg :number :type 'fixnum :readers (number))
    (name :initarg :name :type 'string :readers (name))
-   (type :initarg :type :readers (type)) ; :type should be a LIST or single type.
-   (species :initarg :species :readers (species))
+   (nickname :initarg :nickname :type 'string :accessor nickname)
+   (type :initarg :type :readers (poketype)) ; :type should be a LIST or single type.
+   ;(species :initarg :species :readers (species))
    (abilities :initarg :abilities :readers (abilities))
-   (lv100exp :initarg :lv100exp :type 'fixnum)
-   (height :initarg :height :type 'fixnum) ; units are tenths of a meter.
-   (weight :initarg :weight :type 'fixnum) ; units are tenths of a kilogram.
-   (catch-rate :initarg :catch-rate :type 'fixnum :readers (catch-rate))
-   (gender-ratio :initarg :gender-ratio)
-   (breeding :initarg :breeding)
-   (ev-yield :initarg :ev-yield)
-   (base-exp :initarg :base-exp)
-   (battle-exp :initarg :battle-exp)
-   (base-stats :initarg :base-stats :type 'battle-statistics)
-   (moves :initarg :moves)
+   (leechedp :initarg :leeched :accessor leechedp)
+   (confusedp :initarg :confusedp :accessor confusedp)
+   ;(lv100exp :initarg :lv100exp :type 'fixnum)
+;   (height :initarg :height :type 'fixnum) ; units are tenths of a meter.
+   (weight :initarg :weight :type 'fixnum :reader weight) ; units are tenths of a kilogram.
+   ;(catch-rate :initarg :catch-rate :type 'fixnum :readers (catch-rate))
+   ;(gender-ratio :initarg :gender-ratio)
+   ;(breeding :initarg :breeding)
+   ;(ev-yield :initarg :ev-yield)
+   (ev :initarg :ev :accessor ev)
+   ;(base-exp :initarg :base-exp)
+   ;(battle-exp :initarg :battle-exp)
+   (base-stats :initarg :base-stats :type 'battle-statistics :accessor base-stats)
+   (moves :initarg :moves :accessor moves)
    (type-effectiveness :initarg :type-effectiveness)
-   (nature :initarg :nature :reader nature)
+   (nature :initarg :nature :accessor nature)
    (level :initarg :level :type '(integer 0 100) :reader level)
    (item :initarg :item); what item is it holding?
    (gender :initarg :gender)
    (ability :initarg :ability)
    (dv :initarg :dv :type 'battle-statistics :accessor dv)
    (happiness :initarg :happiness) ; only has effect on moves.
-   (steps-walked-with :initarg :steps-walked-with :accessor steps-walked-with
+   #+ () (steps-walked-with :initarg :steps-walked-with :accessor steps-walked-with
                       :documentation "Total number of steps this pokemon
    has been in the active party of the player."
                       :type 'fixnum)))
 
-(defclass battle-pokemon (pokemon)
-  ((hp-remaining :initarg :hp-remaining :type 'fixnum :readers (hp-remaining)))
+(defclass battle-pokemon ()
+  ((base-pokemon :initarg :base-pokemon :type 'base-pokemmon)
+   (hp-remaining :initarg :hp-remaining :type 'fixnum :readers (hp-remaining))
+   (status :initarg :status :accessor status)
+   (attractedp :initarg :attractedp :accessor attractedp :type 'boolean)
+   (stat-boosts :initarg :stat-boosts :accessor stat-boosts)
+   (physical-stats :initarg :ps :accessor physical-stats :type 'battle-statistics)
+   (flinchp :initarg :flinchp :accessor flinchp :type 'boolean)
+   (user-switch-p :initarg :user-switch-p :accessor user-switch-p
+            :documentation "The condition that indicates if the pokemon can
+            be changed out by the user or not.")
+   (opponent-switch-p :initarg :opponent-switch-p :accessor opponent-switch-p
+                  :documentation "The condition that indicates if the
+            pokemon can be changed out by the AI or not."))
   (:documentation "Additional information about POKEMON needed for battles."))
 
 (defclass battle-statistics ()
@@ -111,12 +129,41 @@ Only released generations are I, II, III, IV, and V. So this corresponds to
    (type :initarg :type :reader poketype)
    (learning) ; How the move is learned...
    (pp :initarg :pp :reader pp)
+   (priority :initarg :priority :reader priority)
+   (effect-description :initarg :effect-description :reader effect-description)
+   (effect-fun :initarg :effect-fun :reader effect-fun)
    (pp-remaining :initarg :pp-remaining :accessor pp-remaining)
    (power :initarg :power :reader power)
+   (effect :initarg :effect :reader effect)
    (accuracy :initarg :accuracy :reader accuracy)
    (effect-accuracy :initarg :effect-accuracy :reader effect-accuracy)
    (category :initarg :category :reader category)
    (description :initarg :description :reader description)
+   (critical-rate :initarg :critical-rate :reader critical-rate)
+   (recoil :initarg :recoil :reader recoil)
+   (range :initarg :range :reader range)
+   (max-turns :initarg :max-turns :reader max-turns)
+   (min-turns :initarg :min-turns :reader min-turns)
+   (min-max-hits :initarg :min-max-hits :reader min-max-hits)
+   (healing :initarg :healing :reader healing)
+   (status-kind :initarg :status-kind :reader status-kind)
+   (damage-class :initarg :damage-class :reader damage-class)
+   (stat-modifier-chances :initarg :stat-modifier-chances :reader stat-modifier-chances)
+   (stat-modifier :initarg :stat-modifier :reader stat-modifier)
+   (flags :initarg :flags :reader flags
+          :documentation "See the flags on veekun's pokedex.
+
+For example FlyingFlag is for gravity blocking and SubstituteFlag is for
+moves that bypass substitute such as Taunt. PO's C++ enumeration is
+           enum Flags     {         ContactFlag = 1,
+             ChargeFlag = 2,         RechargeFlag = 4,
+             ProtectableFlag = 8,         MagicCoatableFlag = 16,
+             SnatchableFlag = 32,         MemorableFlag = 64,
+             PunchFlag = 128,         SoundFlag = 256,
+             FlyingFlag = 512,         UnthawingFlag = 1024,
+             PulsingFlag = 2048,         HealingFlag = 4096,
+             Substitute = 8192     };")
+   (flinch-chance :initarg :flinch-chance :reader flinch-chance)
    (generation :initarg :generation :type 'valid-generation-number :reader generation))
   (:documentation "Description of a pokemon move."))
 
@@ -151,7 +198,7 @@ Only released generations are I, II, III, IV, and V. So this corresponds to
 (defclass cloudy-sky (weather) ())
 (defclass snow (weather) ())
 
-(defclass poketype () ()
+#+ () (defclass poketype () ()
   (:documentation "Base class for pokemon types."))
 
 (defmethod immunep ((attacking-type poketype) (defending-type poketype))
@@ -297,12 +344,20 @@ Docs: http://www.smogon.com/dp/articles/damage_formula#mod1"
 
 (defmethod print-object ((obj battle-pokemon) stream)
   (print-unreadable-object (obj stream :type t)
-    (let ((stats (dv obj)))
-      (format stream "LvL: ~A HP: ~A/~A ATK: ~A DEF: ~A SP-ATK ~A SP-DEF ~A SPD ~A"
+    (let ((stats (dv (base-pokemmon obj))))
+      (format stream "LvL: ~A HP: ~A/~A ATK: ~A DEF: ~A SP-ATK ~A SP-DEF ~A SPD ~A
+    ~A
+    ~A
+    ~A
+    ~A"
               (level obj) (hp-remaining obj)
               (hp stats) (attack stats) (defense stats)
               (special-attack stats) (special-defense stats)
-              (speed stats)))))
+              (speed stats)
+              (car (moves obj))
+              (cadr (moves obj))
+              (caddr (moves obj))
+              (cadddr (moves obj))))))
 
 (defun battle-stats (hp attack defense special-attack special-defense speed)
   "Helper function for creating instances of BATTLE-STATISTICS."
@@ -387,6 +442,10 @@ Docs: http://www.smogon.com/dp/articles/damage_formula#mod1"
    (name :initarg :name :type 'string :reader name))
   (:documentation "Pokemon trainer information"))
 
+(defclass battle-player (player)
+  ((entry-hazards :initarg :entry-hazards :accessor entry-hazards)
+   (exit-hazards :initarg :exit-hazards :accessor exit-hazards)))
+
 (defclass battle-configuration ()
   ())
 
@@ -434,6 +493,18 @@ at one time."))
 (defgeneric sort-by-speed (battle))
 (defgeneric weather (thing))
 (defgeneric (setf weather) (thing value))
+
+(defgeneric name (thing)
+  (:documentation "Return the name of THING as a string."))
+
+(defgeneric object-id (thing)
+  ;; Probably not useful in common lisp but who knows!
+  (:documentation "Integer identifier of THING."))
+
+(defgeneric player1 (thing))
+(defgeneric player2 (thing))
+
+
 (defclass battle ()
   ((players :documentation "Player list."
              :initarg :players
@@ -441,6 +512,10 @@ at one time."))
    (turn :documentation "Current turn number."
          :type 'non-negative-fixnum
          :initarg :turn :accessor turn)
+   (trick-room-p :initarg :trick-room-p :accessor trick-room-p)
+   (gravityp :initarg :gravityp :accessor gravityp)
+   (wonder-room-p :initarg :wonder-room-p :accessor wonder-room-p)
+   (magic-room-p :initarg :magic-room-p :accessor magic-room-p)
    (battlelog :documentation "Log of all actions during this battle."
               :initarg :battlelog)
    (weather :documentation "Current weather effect on the battle."
@@ -453,19 +528,11 @@ at one time."))
 :player1 corresponds to 0, :player2 corresponds to 1 and :spectator corresponds to -1."
   '(member :spectator :player1 :player2))
 
-(defgeneric name (thing)
-  (:documentation "Return the name of THING as a string."))
-
-(defgeneric object-id (thing)
-  ;; Probably not useful in common lisp but who knows!
-  (:documentation "Integer identifier of THING."))
-
-
 (defun make-ai-player (&key name)
   (make-instance 'player :name name :team (list (create-battle-pokemon 5 (battle-stats 21 9 6 10 8 12) 50))))
 
 (defun make-test-battle ()
-  (make-instance 'battle :players (list (make-ai-player :name "AI")
+  (make-instance 'battle :players (list (make-instance 'player :name "AI" :team (list (create-battle-pokemon 5 (battle-stats 21 9 6 10 8 12) 50)))
                                         (make-ai-player :name "AI-OPP"))))
 
 (defparameter *battle* nil
@@ -481,8 +548,6 @@ at one time."))
     (setf *last-battle* *battle*)
   ))
 
-(defgeneric player1 (thing))
-(defgeneric player2 (thing))
 
 (defmethod player1 ((obj battle))
   "First player of 2 in a pokemon battle."
@@ -500,3 +565,40 @@ at one time."))
           (name (player1 battle))
           (name (player2 battle))))
 
+(defun analyze-attack-damage (battle attacker defender move)
+  (simple-damagecalc-min-max (level (first (battle-team attacker)))
+                             (power move) (attack (dv (first (battle-team attacker))))
+                             (defense (dv (first (battle-team defender))))))
+
+(defun import-csv-as-list (filepath)
+  (with-open-file (s filepath :direction :input)
+    (read-line s nil);; ignore the header line
+    (loop for line = (read-line s nil)
+       while line collect
+         (let ((sp (split-sequence #\, line)))
+           (list (parse-integer (car sp)) (cdr sp))))))
+
+(defun import-pokemon-ids-and-names ()
+  (import-csv-as-list "c:/cygwin/home/Tim/repos/pokedex/pokedex/data/csv/pokemon.csv"))
+
+(defparameter *pokedex* (make-hash-table :test #'eq)
+  "Global database of pokemon data.
+
+Indexed by the pokemon's ID in the national pokedex.")
+
+(defparameter *typedex* (make-hash-table :test #'eq)
+  "Global database mapping typeids to type names.")
+
+(deftype poketype ()
+  "Listing of the 17 valid pokemon types in Generation 5."
+  '(member :bug :dark :dragon :electric :fight :fire :flying :ghost
+    :grass :ground :ice :normal :poison :psychic :rock :steel :water))
+
+
+(defmethod print-object ((obj pokemon) stream)
+  (print-unreadable-object (obj stream :type t)
+    (let ((stats (base-stats obj)))
+      (format stream "~A HP: ~A ATK: ~A DEF: ~A SP-ATK ~A SP-DEF ~A SPD ~A"
+              (name obj) (hp stats) (attack stats) (defense stats)
+              (special-attack stats) (special-defense stats)
+              (speed stats)))))

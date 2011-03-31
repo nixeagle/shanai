@@ -1,0 +1,36 @@
+* PO import format
+** Battle set 1
+Porygon @ Eviolite 
+Trait: Trace 
+EVs: 236 HP / 196 Def / 76 SAtk 
+26 10 16 17 14 10 
+Modest Nature (+SAtk, -Atk) 
+- Tri Attack 
+- Recover 
+ 
+Munchlax (M) @ Eviolite 
+Trait: Thick Fat 
+EVs: 236 HP / 36 Def / 236 SDef 
+33 16 11 9 18 7 
+Adamant Nature (+Atk, -SAtk) 
+- Body Slam 
+- Facade
+
+** Battle set 2
+Squirtle (M) @ Eviolite  
+Trait: Torrent  
+EVs: 164 HP / 52 Atk / 72 Def  
+Stats: 23/12/14/9/12/10  
+Impish Nature (+Def, -SAtk)  
+- Tackle (50 BP 100% ACC)  
+- Defense Curl (+1 DEF)  
+  
+Poochyena (M) @ Eviolite  
+Trait: Run Away  
+EVs: 236 HP / 236 Def  
+Stats: 23/12/14/8/9/10  
+Impish Nature (+Def, -SAtk)  
+- Tackle (50 BP 100% ACC)  
+- Howl (+1 ATK)
+
+
