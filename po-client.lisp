@@ -78,22 +78,8 @@ Messages are of the format <message length (2 octets)><message>."
     (let ((cmd (read-byte (usocket:socket-stream socket))))
       (case cmd
         (#x0c (client-ping socket))
-;        (51 (handle-event socket (decode-message-51 len socket)))
-;        (55 (handle-event socket (decode-message-55 len socket)))
-;        (20 (handle-event socket (decode-message-20 len socket)))
-;        (33 (handle-event socket (decode-message-33 len socket)))
-;        (2 (handle-event socket (decode-message-2 len socket)))
-        ;(47 ) USER PART
-        (otherwise (handle-event socket (decode cmd socket :len len))))))
+        (otherwise (handle-event socket (decode cmd socket :len len)))))))
 
-  
-#+ ()  (if (= (car octet-list) #x0c)
-      (client-ping socket)
-      (setf *po-socket-recv-log* (cons octet-list *po-socket-recv-log*))
-      #+ () (progn (case (car octet-list)
-               (51 nil)
-               #+ () (otherwise (po-send-string socket "demo spam every time I get a non ping message!")))
-             )))
 (defun reply (con target msg)
   (typecase target
     (channel-message
