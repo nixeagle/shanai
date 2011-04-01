@@ -12,6 +12,25 @@ Local to each thread that is created.")
 (defvar @po-socket@
   "Contains a pointer to the last created pokemon online socket.")
 
+(defclass connection (usocket:stream-usocket)
+  ((nickname :initarg :nickname :reader nickname)
+   (channels :initarg :channels :accessor channels)))
+
+(defclass channel-message (message)
+  ((id :initarg :channel-id :reader channel-id)))
+
+(defclass message ()
+  ((message :initarg :message :reader message :type 'string)
+   (id :type '(unsigned-byte 32))))
+
+(defclass private-message (message)
+  ((id :initarg :user-id :reader user-id)))
+
+(defclass server-version ()
+  ((version :initarg :version :reader version :type 'string)))
+(defclass server-name ()
+  ((name :initarg :name :reader name :type 'string)))
+
 (defun read-u1 (in-stream)
   (loop with value = 0
      for low-bit downfrom (* 8 (1- 1)) to 0 by 8 do
@@ -63,9 +82,8 @@ stream operations."
 Messages are of the format <message length (2 octets)><message>."
   ;; need to convert this to returning a flexi stream and or an in memory
   ;; stream..
-  (let ((len (read-po-message-length socket)))
-    (loop for i from 1 to len
-         collecting (read-byte (usocket:socket-stream socket)))))
+  (loop for i from 1 to (read-u2 socket)
+     collecting (read-byte (usocket:socket-stream socket))))
 
 (defun client-ping (socket)
   "Ping the server at SOCKET."
@@ -92,8 +110,11 @@ Messages are of the format <message length (2 octets)><message>."
 
 (defmethod handle-event ((con connection) (msg channel-message))
   "Handle a message sent to us somehow :P"
-  (unless (search "AI:" (message msg) :start2 0 :end2 3);ignore messages sent from us.
-    (handle-msg con msg)))
+  (unless (search "Shanai:" (message msg) :start2 0 :end2 7);ignore messages sent from us.
+    (let ((wl (handle-wikilinks (message msg))))
+      (if (string= "" wl)
+          (handle-msg con msg)
+          (reply con msg wl)))))
 
 (defmethod handle-event ((con connection) (msg private-message))
   "Handle a message sent to us somehow :P"
@@ -117,7 +138,7 @@ Messages are of the format <message length (2 octets)><message>."
 (defun po-login-ai (&optional (socket @po-socket@))
   "Log the AI bot in as user 'AI'."
   (print-po-raw socket
-                (list 0 9 2 0 0 0 4 0 (char-code #\A) 0 (char-code #\I))))
+                `(0 17 2 0 0 0 12 ,@(loop for i across (flexi-streams:string-to-octets "Shanai" :external-format :utf-16) collect i))))
 
 
 (defun po-send-string (socket string)
@@ -162,12 +183,15 @@ else."
 
 (defmethod decode :around (id connection &key len (external-format :utf-16))
   (call-next-method id connection :len len :external-format external-format))
+
 (defmethod decode :around (id (connection list) &key len (external-format :utf-16))
   (let ((len (1- (length connection))))
     (with-input-from-vector (s (make-array (1+ len) :element-type '(unsigned-byte 8) :initial-contents connection) :external-format external-format)
       (decode id s :len len :external-format external-format))))
+
 (defmethod decode :around (id (con usocket:stream-usocket) &key (external-format :utf-16) len)
   (decode id (usocket:socket-stream con) :external-format external-format :len len))
+
 (defun read-po-octet-string (stream &key (external-format :utf-16))
   (let ((len (read-u4 stream)))
     (flexi-streams:octets-to-string (loop for i from 1 to len
@@ -190,9 +214,7 @@ else."
                       (usocket:socket-close *po-socket*))
                     ) :name "PO Socket loop" :initial-bindings `((*standard-output* . *standard-output*))))
 
-(defclass connection (usocket:stream-usocket)
-  ((nickname :initarg :nickname :reader nickname)
-   (channels :initarg :channels :accessor channels)))
+
 
 (defclass channel ()
   ((id :initarg :id :reader channel-id)
@@ -219,7 +241,7 @@ else."
 (defun to-flexi-stream (s &key (external-format :utf-16))
   (flexi-streams:make-flexi-stream s :external-format (flexi-streams:make-external-format external-format)))
 
-(defun connect (host port &rest args &key (nickname "AI"))
+(defun connect (host port &rest args &key (nickname "Shanai"))
   "Create a socket connected to HOST on PORT."
   (declare (ignore nickname))
   (let ((sock (apply #'change-class
@@ -229,24 +251,11 @@ else."
     (reinitialize-instance sock
                            :stream (to-flexi-stream (usocket:socket-stream sock)))))
 
-(defclass channel-message (message)
-  ((channel-id :initarg :channel-id :type '(unsigned-byte 32) :reader channel-id)))
 
-(defclass message ()
-  ((message :initarg :message :reader message :type 'string)))
-
-(defclass private-message (message)
-  ((user-id :initarg :user-id :type '(unsigned-byte 32) :reader user-id)))
-
-(defmethod print-object ((obj channel-message) s)
+(defmethod print-object ((obj message) s)
   (print-unreadable-object (obj s :type t)
-    (with-slots (message channel-id) obj
-      (format s "#~A: ~S" channel-id message))))
-
-(defmethod print-object ((obj private-message) s)
-  (print-unreadable-object (obj s :type t)
-    (with-slots (message user-id) obj
-      (format s "#~A: ~S" user-id message))))
+    (with-slots (message id) obj
+      (format s "#~A: ~S" id message))))
 
 (defmethod print-object ((obj server-version) s)
   (print-unreadable-object (obj s :type t)
@@ -274,10 +283,7 @@ else."
                    :name (read-po-octet-string s)))
 
 
-(defclass server-version ()
-  ((version :initarg :version :reader version :type 'string)))
-(defclass server-name ()
-  ((name :initarg :name :reader name :type 'string)))
+
 
 (defmethod decode-message-2 (len connection)
   (let ((s connection #+ () (usocket:socket-stream connection)))

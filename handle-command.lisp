@@ -11,7 +11,7 @@
                          (+ (length ",say") (search ",say " (message msg))))))
 (defmethod handle-command ((cmd (eql :client)) (con connection) (msg message))
   (reply con msg "Latest client binary can be downloaded at <a href=\"http://pokemon-online.eu/downloads/Client_17.html\">http://pokemon-online.eu/downloads/Client_17.html</a>"))
-(defmethod handle-command ((cmd (eql :pokemon)) (con connection) (msg message))
+(defmethod handle-command ((cmd (eql :pokedex)) (con connection) (msg message))
   (let ((cmd (split-at-first #\ (cdr (parse-nickname-and-message msg)))))
     (when (cdr cmd)
       (let ((int (parse-integer (cdr cmd) :junk-allowed t)))
@@ -74,3 +74,16 @@
         (if (and int (< 0 int pokemon::+total-moves+))
             (reply con msg (move-to-html-string (aref pokemon::*movedex* int)))
             (reply con msg "Sorry that move number does not exist!"))))))
+
+
+(defun print-channel-name (chan stream)
+  "Print CHAN's name to STREAM.
+
+Format is #foobar"
+  (declare (type channel chan))
+  (write-char #\# stream)
+  (princ (name chan) stream))
+
+(defun handle-wikilinks (stg)
+  (with-output-to-string (*standard-output*)
+      (cl-ppcre:do-scans (ms me rs re "\\[\\[([^\\]]*)\\]\\]" stg) (princ "<a href=\"http://en.wikipedia.org/wiki/") (princ (hunchentoot:url-encode (subseq stg (aref rs 0) (aref re 0)))) (princ "\">") (princ "en:") (princ (cl-who:escape-string (subseq stg (aref rs 0) (aref re 0)))) (princ "</a>")(write-char #\space))))

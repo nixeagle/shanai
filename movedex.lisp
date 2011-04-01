@@ -128,7 +128,7 @@ enum Stat { Hp = 0,     Attack = 1,     Defense = 2,
                        do (reinitialize-instance (svref *movedex* ,i) ,@body)))))
       (with-move ("moves/moves.txt" line i) :name line :number i)
       (with-move ("moves/5G/type.txt" line i) :type (nth line *typedex*))
-      (with-move ("moves/5G/pp.txt" line i) :pp line :pp-remaining line)
+      (with-move ("moves/5G/pp.txt" line i) :pp line)
       (with-move ("moves/5G/power.txt" line i) :power line)
       (with-move ("moves/5G/accuracy.txt" line i) :accuracy line)
       (with-move ("moves/5G/crit_rate.txt" line i) :critical-rate line)

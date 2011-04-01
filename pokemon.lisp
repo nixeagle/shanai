@@ -31,7 +31,7 @@ Returns the percentage chance that a particular hit will occur."
    (number :initarg :number :type 'fixnum :readers (number))
    (name :initarg :name :type 'string :readers (name))
    (nickname :initarg :nickname :type 'string :accessor nickname)
-   (type :initarg :type :readers (poketype)) ; :type should be a LIST or single type.
+   (type :initarg :type :reader poketype) ; :type should be a LIST or single type.
    ;(species :initarg :species :readers (species))
    (abilities :initarg :abilities :readers (abilities))
    (leechedp :initarg :leeched :accessor leechedp)
@@ -132,7 +132,6 @@ Only released generations are I, II, III, IV, and V. So this corresponds to
    (priority :initarg :priority :reader priority)
    (effect-description :initarg :effect-description :reader effect-description)
    (effect-fun :initarg :effect-fun :reader effect-fun)
-   (pp-remaining :initarg :pp-remaining :accessor pp-remaining)
    (power :initarg :power :reader power)
    (effect :initarg :effect :reader effect)
    (accuracy :initarg :accuracy :reader accuracy)
@@ -170,10 +169,10 @@ moves that bypass substitute such as Taunt. PO's C++ enumeration is
 
 (defmethod print-object ((obj move) stream)
   (print-unreadable-object (obj stream :type t)
-    (format stream "~A ~A named ~A: POW ~A ACC ~A ~A/~A"
+    (format stream "~A ~A named ~A: POW ~A ACC ~A ~A"
             (category obj) (poketype obj)
             (name obj) (power obj) (accuracy obj)
-            (pp obj) (pp-remaining obj))))
+            (pp obj))))
 
 ;;; Functions for manipulating an in memory movedex.
 (defmacro defmove (name description &rest r)
@@ -201,15 +200,12 @@ moves that bypass substitute such as Taunt. PO's C++ enumeration is
 #+ () (defclass poketype () ()
   (:documentation "Base class for pokemon types."))
 
-(defmethod immunep ((attacking-type poketype) (defending-type poketype))
+#+ () (defmethod immunep ((attacking-type poketype) (defending-type poketype))
   "True if ATTACKING-TYPE does not affect DEFENDING-TYPE.")
 
 (defun calc-damage (level bp attack opp-defense)
   (+ (floor (/ (* (floor (+ (* level 2/5) 2)) bp attack) (* 50 opp-defense)))
      2))
-
-(let* ((s1 (floor (* level 2/5)))
-       (s2 (+ s1 2))))
 
 
 (defun make-gen-ds-pokemon (dex-no id nature lvl-caught lvl-current exp pokestats ability)
@@ -394,7 +390,7 @@ Docs: http://www.smogon.com/dp/articles/damage_formula#mod1"
 
 (defgeneric type1 (pokemon generation))
 (defgeneric type2 (pokemon generation))
-(defgeneric moves (pokemon generation))
+;(defgeneric moves (pokemon generation))
 (defgeneric egg-moves (pokemon generation))
 (defgeneric level-moves (pokemon generation))
 (defgeneric tutor-moves (pokemon generation))
@@ -406,7 +402,7 @@ Docs: http://www.smogon.com/dp/articles/damage_formula#mod1"
 
 (defgeneric number-of-formes (pokemon generation))
 
-(defgeneric a-forme-shown)
+;(defgeneric a-forme-shown)
 
 (defgeneric formep (pokemon generation))
 
@@ -431,7 +427,7 @@ Docs: http://www.smogon.com/dp/articles/damage_formula#mod1"
 (defgeneric in-evolution-chain-p (pokemon generation))
 (defgeneric base-stats (pokemon))
 (defgeneric exists (pokemon generation))
-(defgeneric abilities (pokemon generation))
+;(defgeneric abilities (pokemon generation))
 ;Stat+Fullstat are what exactly!
 
 ; Should not return Missingno
