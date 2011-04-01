@@ -1,17 +1,6 @@
 (in-package :pokemon)
 
-(defparameter *po-directory* "c:/cygwin/home/Tim/repos/pogeymon-online/"
-  "Full path to where Pokemon Online source/installation is.
 
-Make sure your file path ends with a trailing slash!")
-
-(defun import-csv-as-list (filepath)
-  (with-open-file (s filepath :direction :input)
-    (read-line s nil);; ignore the header line
-    (loop for line = (read-line s nil)
-       while line collect
-         (let ((sp (split-sequence #\, line)))
-           (list (parse-integer (car sp)) (cdr sp))))))
 
 (defun make-po-data-filepath (file)
   (declare (type string file))
