@@ -27,8 +27,8 @@
     (when (cdr cmd)
       (let ((int (parse-integer (cdr cmd) :junk-allowed t)))
         (if (and int (< 0 int pokemon::+total-moves+))
-            (reply con msg (move-to-html-string (aref pokemon::*movedex* int)))
-            (let ((poke (find (cdr cmd) pokemon::*movedex* :test #'string= :key #'pokemon::name)))
+            (reply con msg (move-to-html-string (pokemon::find-move int)))
+            (let ((poke (pokemon::find-move (cdr cmd))))
               (if poke
                   (reply con msg (move-to-html-string poke))
                   (reply con msg "Sorry that move number does not exist!"))))))))
