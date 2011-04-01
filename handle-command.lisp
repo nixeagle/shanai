@@ -32,10 +32,11 @@
 
 (defmethod handle-command ((cmd (eql :eval)) (con connection) (msg message))
   (let ((cmd (split-at-first #\ (cdr (parse-nickname-and-message msg)))))
-    (when (cdr cmd)
-      (reply con msg (cl-who:with-html-output-to-string (s nil :indent nil)
-                       (:code (cl-who:esc (with-output-to-string (s) (pprint
-                                                                      (handler-case (eval (let ((*package* (find-package :pokemon.po.client))) (read-from-string (cdr cmd) nil "Sorry malformed input. Did you forget a closing paren?"))) (error (condition) condition)) s)))))))))
+    (when (string= "nixeagle" (car (parse-nickname-and-message msg)))
+      (when (cdr cmd)
+        (reply con msg (cl-who:with-html-output-to-string (s nil :indent nil)
+                         (:code (cl-who:esc (with-output-to-string (s) (pprint
+                                                                        (handler-case (eval (let ((*package* (find-package :pokemon.po.client))) (read-from-string (cdr cmd) nil "Sorry malformed input. Did you forget a closing paren?"))) (error (condition) condition)) s))))))))))
 
 (defmethod handle-command ((cmd (eql :describe)) (con connection) (msg message))
   (let ((cmd (split-at-first #\ (cdr (parse-nickname-and-message msg)))))

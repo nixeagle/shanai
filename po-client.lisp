@@ -31,11 +31,42 @@ Local to each thread that is created.")
 (defclass server-name ()
   ((name :initarg :name :reader name :type 'string)))
 
+(defclass channel ()
+  ((id :initarg :id :reader channel-id)
+   (name :initarg :name :reader name)
+   (trainers :initarg :trainers :accessor trainers)))
+
+(defclass packet ()
+  ((contents :initarg :contents :reader contents)
+   (command-id :allocation :class :reader command-id)))
+
+
 (defun read-u1 (in-stream)
   (loop with value = 0
      for low-bit downfrom (* 8 (1- 1)) to 0 by 8 do
      (setf (ldb (byte 8 low-bit) value) (read-byte in-stream))
      finally (return value)))
+
+(defclass channel-list-packet (packet)
+  ((command-id :initform 44 :allocation :class)))
+
+(defclass channel-id-mixin ()
+  ((channel-id :initarg :channel-id :reader channel-id :type '(unsigned-byte 32)
+               :documentation "Numeric identifier cooresponding to a channel name.")))
+
+(defclass channel-players-packet (packet channel-id-mixin)
+  ((command-id :initform 45 :allocation :class)))
+
+(defclass trainer ()
+  ((user-id :initarg :user-id :reader user-id)
+   (name :initarg :name :reader name)
+   (info :initarg :info :reader info)
+   (losing-msg :initarg :losing-msg :reader losing-msg)
+   (winning-msg :initarg :winning-msg :reader winning-msg)))
+
+(defclass join ()
+  ((channel-id :initarg :channel-id :reader channel-id)
+   (user-id :initarg :user-id :reader user-id)))
 
 (defun read-u2 (in-stream)
   (loop with value = 0
@@ -215,28 +246,10 @@ else."
                     ) :name "PO Socket loop" :initial-bindings `((*standard-output* . *standard-output*))))
 
 
-
-(defclass channel ()
-  ((id :initarg :id :reader channel-id)
-   (name :initarg :name :reader name)
-   (trainers :initarg :trainers :accessor trainers)))
-
-(defclass packet ()
-  ((contents :initarg :contents :reader contents)
-   (command-id :allocation :class :reader command-id)))
-
 (defmethod print-object ((obj packet) s)
   (print-unreadable-object (obj s :type t)
     (format s "#~A ~A" (command-id obj) (contents obj))))
-(defclass channel-list-packet (packet)
-  ((command-id :initform 44 :allocation :class)))
 
-(defclass channel-id-mixin ()
-  ((channel-id :initarg :channel-id :reader channel-id :type '(unsigned-byte 32)
-               :documentation "Numeric identifier cooresponding to a channel name.")))
-
-(defclass channel-players-packet (packet channel-id-mixin)
-  ((command-id :initform 45 :allocation :class)))
 
 (defun to-flexi-stream (s &key (external-format :utf-16))
   (flexi-streams:make-flexi-stream s :external-format (flexi-streams:make-external-format external-format)))
@@ -294,22 +307,11 @@ else."
                    )
     ))
 
-(defclass trainer ()
-  ((user-id :initarg :user-id :reader user-id)
-   (name :initarg :name :reader name)
-   (info :initarg :info :reader info)
-   (losing-msg :initarg :losing-msg :reader losing-msg)
-   (winning-msg :initarg :winning-msg :reader winning-msg)))
-
 (defmethod print-object ((obj trainer) s)
   (print-unreadable-object (obj s)
     (format s "~A #~A ~S loss-msg: ~S win-msg: ~S"
             (name obj) (user-id obj) (info obj)
             (losing-msg obj) (winning-msg obj))))
-
-(defclass join ()
-  ((channel-id :initarg :channel-id :reader channel-id)
-   (user-id :initarg :user-id :reader user-id)))
 
 (defmacro with-output-to-sequence ((s) &body body)
   `(flexi-streams:with-output-to-sequence (,s)
@@ -360,19 +362,15 @@ else."
 (defun commandp (con msg-string)
   (not (not (find #\, msg-string :end 1))))
 
-
-
 (defmethod handle-command (cmd (con connection) (msg message))
   (reply con msg "Sorry I don't know about that one."))
-(defun handle-command% (con msg)
 
+(defun handle-command% (con msg)
   (when (commandp con (cdr (parse-nickname-and-message msg)))
     (let ((cmd (split-at-first #\ (cdr (parse-nickname-and-message msg)))))
       (when cmd
         (handle-command (intern (string-upcase (subseq (car cmd) 1)) :keyword)
-
-                        con msg)
-        ))))
+                        con msg)))))
 
 (defun parse-nickname-and-message (msg)
   (if (typep msg 'private-message)
