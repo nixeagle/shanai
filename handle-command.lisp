@@ -77,7 +77,7 @@
                    (header-col "PP MAX"))
               (:tr (stat-box (pokemon::name move))
                    (stat-box (pokemon::poketype move))
-                   (stat-box (pokemon::category move))
+                   (stat-box (pokemon::damage-class move))
                    (stat-box (pokemon::power move))
                    (stat-box (pokemon::accuracy move))
                    (stat-box (pokemon::pp move)))
