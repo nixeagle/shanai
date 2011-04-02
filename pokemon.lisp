@@ -348,6 +348,23 @@ Docs: http://www.smogon.com/dp/articles/damage_formula#mod1"
     (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon null)))))
     (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon null))))))))
 
+(defclass player ()
+  ((battle-team :initarg :team :type 'battle-box :accessor battle-team)
+   (name :initarg :name :type 'string :reader name))
+  (:documentation "Pokemon trainer information"))
+
+(defclass battle-player (player)
+  ((entry-hazards :initarg :entry-hazards :accessor entry-hazards)
+   (exit-hazards :initarg :exit-hazards :accessor exit-hazards)))
+
+(defclass battle-configuration ()
+  ())
+(defclass team-battle ()
+  ())
+
+(defclass poke-battle ()
+  ())
+
 (defun execute-move (move)
   ;; Execute a particular move by poke1.
   )
@@ -406,17 +423,7 @@ Docs: http://www.smogon.com/dp/articles/damage_formula#mod1"
 ; Should not return Missingno
 (defun random-pokemon (generation))
 
-(defclass player ()
-  ((battle-team :initarg :team :type 'battle-box :accessor battle-team)
-   (name :initarg :name :type 'string :reader name))
-  (:documentation "Pokemon trainer information"))
 
-(defclass battle-player (player)
-  ((entry-hazards :initarg :entry-hazards :accessor entry-hazards)
-   (exit-hazards :initarg :exit-hazards :accessor exit-hazards)))
-
-(defclass battle-configuration ()
-  ())
 
 (defgeneric sleep-clause-p (battle)
   (:documentation "Is the sleep clause turned on?
@@ -424,11 +431,7 @@ Docs: http://www.smogon.com/dp/articles/damage_formula#mod1"
 In PO, the sleep clause means that only one pokemon may be asleep on a team
 at one time."))
 
-(defclass team-battle ()
-  ())
 
-(defclass poke-battle ()
-  ())
 
 ;;; around roughly line 86 battle.h
 (defgeneric team (player))
