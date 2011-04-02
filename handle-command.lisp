@@ -2,6 +2,8 @@
 
 (defmethod handle-command ((cmd (eql :help)) (con connection) (msg message))
   (reply con msg "ooh look, a <a href=\"http://google.com/\">google</a>!"))
+(defmethod handle-command ((cmd (eql :source)) (con connection) (msg message))
+  (reply con msg "I'm licensed under the GNU GPL version 3 or later. Find me on <a href=\"http://github.com/nixeagle/shanai\">github</a>!"))
 (defmethod handle-command ((cmd (eql :forums)) (con connection) (msg message))
   (reply con msg "<a href=\"http://pokemon-online.eu/forums/\">http://pokemon-online.eu/forums/</a>"))
 (defmethod handle-command ((cmd (eql :tiers)) (con connection) (msg message))
