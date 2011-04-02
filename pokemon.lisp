@@ -34,8 +34,6 @@ Returns the percentage chance that a particular hit will occur."
    (type :initarg :type :reader poketype) ; :type should be a LIST or single type.
    ;(species :initarg :species :readers (species))
    (abilities :initarg :abilities :readers (abilities))
-   (leechedp :initarg :leeched :accessor leechedp)
-   (confusedp :initarg :confusedp :accessor confusedp)
    ;(lv100exp :initarg :lv100exp :type 'fixnum)
 ;   (height :initarg :height :type 'fixnum) ; units are tenths of a meter.
    (weight :initarg :weight :type 'fixnum :reader weight) ; units are tenths of a kilogram.
@@ -63,6 +61,8 @@ Returns the percentage chance that a particular hit will occur."
 
 (defclass battle-pokemon ()
   ((base-pokemon :initarg :base-pokemon :type 'base-pokemmon)
+   (leechedp :initarg :leeched :accessor leechedp)
+   (confusedp :initarg :confusedp :accessor confusedp)
    (hp-remaining :initarg :hp-remaining :type 'fixnum :readers (hp-remaining))
    (status :initarg :status :accessor status)
    (attractedp :initarg :attractedp :accessor attractedp :type 'boolean)
@@ -89,10 +89,6 @@ Returns the percentage chance that a particular hit will occur."
   "Create an instance of BATTLE-STATISTICS."
   (battle-stats 0 atk def sp-atk sp-def spd))
 
-(defun make-poke-stats (hp atk def sp-atk sp-def speed)
-  ;; DEPRECIATED in favor of BATTLE-STATS
-  (battle-stats hp atk def sp-atk sp-def speed))
-
 (defmethod print-object ((obj battle-statistics) stream)
   "Print details of a BATTLE-STATISTICS object."
   (print-unreadable-object (obj stream :type :t)
@@ -100,17 +96,11 @@ Returns the percentage chance that a particular hit will occur."
                  (special-attack obj) (special-defense obj)
                  (speed obj) (hp obj)) stream)))
 
-(defun walk (pokemon steps)
-  "Walk with POKEMON for some number of STEPS."
-  (declare (type (integer 0 #.most-positive-fixnum)))
-  (setf (steps-walked-with pokemon)
-        (+ (steps-walked-with pokemon) steps))
-  pokemon)
-
 (deftype valid-move-number ()
   "Range of valid numbers for Generation V pokemon games."
   '(integer 1 559))
 
+;;; Custom generations will probably break this...
 (deftype valid-generation-number ()
   "Range of valid pokemon generations.
 
@@ -178,24 +168,7 @@ moves that bypass substitute such as Taunt. PO's C++ enumeration is
 (defmacro defmove (name description &rest r)
   "Define and intern a new move.")
 
-(defun find-move-by-name (name)
-  "Get information about the move called NAME."
-  (declare (type string name)))
 
-(defun find-move-by-number (number)
-  (declare (type valid-move-number number)))
-
-
-(defclass weather () ())
-
-(defclass sunlight (weather) ())
-(defclass rain (weather) ())
-(defclass sandstorm (weather) ())
-(defclass hailstorm (weather) ())
-(defclass shadow-sky (weather) ())
-(defclass fog (weather) ())
-(defclass cloudy-sky (weather) ())
-(defclass snow (weather) ())
 
 #+ () (defclass poketype () ()
   (:documentation "Base class for pokemon types."))
