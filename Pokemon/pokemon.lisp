@@ -1,22 +1,10 @@
-(defpackage #:pokemon
-  (:use :cl)
-  (:import-from :eos #:is #:test)
-  (:import-from :alexandria :non-negative-fixnum)
-  (:import-from :split-sequence #:split-sequence)
-  (:import-from :iterate :iter :for :appending :collecting :generate :generating :next))
+
 
 (in-package :pokemon)
 
 (eos:def-suite :pokemon)
 
-(defclass ability ()
-  ((name :name :name :initarg :name :type 'string)
-   (number :name :number :initarg :number :type 'fixnum :readers (number))
-   (description :name :description :initarg :description :type 'string)
-   (generation :name :generation :initarg :generation :type 'fixnum)
-   (single :name :single :initarg :single :type 'fixnum)
-   (dual :name :dual :initarg :dual :type 'fixnum)
-   (hidden :name :hidden :initarg :hidden :type 'fixnum)))
+
 
 
 (defun probability-of-hit (base-accuracy accuracy-of-user evasion)
@@ -96,10 +84,6 @@ Returns the percentage chance that a particular hit will occur."
                  (special-attack obj) (special-defense obj)
                  (speed obj) (hp obj)) stream)))
 
-(deftype valid-move-number ()
-  "Range of valid numbers for Generation V pokemon games."
-  '(integer 1 559))
-
 ;;; Custom generations will probably break this...
 (deftype valid-generation-number ()
   "Range of valid pokemon generations.
@@ -108,61 +92,7 @@ Only released generations are I, II, III, IV, and V. So this corresponds to
   a range of 1 to 5."
   '(integer 1 5))
 
-(deftype move-categories ()
-  "Possible categories for pokemon move."
-  '(member :physical :status :special))
 
-
-(defclass move ()
-  ((name :initarg :name :type 'string :reader name)
-   (number :initarg :number :type 'valid-move-number :reader number)
-   (type :initarg :type :reader poketype)
-   (learning) ; How the move is learned...
-   (pp :initarg :pp :reader pp)
-   (priority :initarg :priority :reader priority)
-   (effect-description :initarg :effect-description :reader effect-description)
-   (effect-fun :initarg :effect-fun :reader effect-fun)
-   (power :initarg :power :reader power)
-   (effect :initarg :effect :reader effect)
-   (accuracy :initarg :accuracy :reader accuracy)
-   (effect-accuracy :initarg :effect-accuracy :reader effect-accuracy)
-   (category :initarg :category :reader category)
-   (description :initarg :description :reader description)
-   (critical-rate :initarg :critical-rate :reader critical-rate)
-   (recoil :initarg :recoil :reader recoil)
-   (range :initarg :range :reader range)
-   (max-turns :initarg :max-turns :reader max-turns)
-   (min-turns :initarg :min-turns :reader min-turns)
-   (min-max-hits :initarg :min-max-hits :reader min-max-hits)
-   (healing :initarg :healing :reader healing)
-   (status-kind :initarg :status-kind :reader status-kind)
-   (damage-class :initarg :damage-class :reader damage-class)
-   (stat-modifier-chances :initarg :stat-modifier-chances :reader stat-modifier-chances)
-   (stat-modifier :initarg :stat-modifier :reader stat-modifier)
-   (flags :initarg :flags :reader flags
-          :documentation "See the flags on veekun's pokedex.
-
-For example FlyingFlag is for gravity blocking and SubstituteFlag is for
-moves that bypass substitute such as Taunt. PO's C++ enumeration is
-           enum Flags     {         ContactFlag = 1,
-             ChargeFlag = 2,         RechargeFlag = 4,
-             ProtectableFlag = 8,         MagicCoatableFlag = 16,
-             SnatchableFlag = 32,         MemorableFlag = 64,
-             PunchFlag = 128,         SoundFlag = 256,
-             FlyingFlag = 512,         UnthawingFlag = 1024,
-             PulsingFlag = 2048,         HealingFlag = 4096,
-             Substitute = 8192     };")
-   (flinch-chance :initarg :flinch-chance :reader flinch-chance)
-   (generation :initarg :generation :type 'valid-generation-number :reader generation))
-  (:documentation "Description of a pokemon move."))
-
-
-(defmethod print-object ((obj move) stream)
-  (print-unreadable-object (obj stream :type t)
-    (format stream "~A ~A named ~A: POW ~A ACC ~A ~A"
-            (category obj) (poketype obj)
-            (name obj) (power obj) (accuracy obj)
-            (pp obj))))
 
 ;;; Functions for manipulating an in memory movedex.
 (defmacro defmove (name description &rest r)

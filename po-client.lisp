@@ -1,5 +1,4 @@
-(defpackage #:pokemon.po.client
-  (:import-from :split-sequence #:split-sequence))
+
 
 (in-package :pokemon.po.client)
 (defvar *po-socket*
@@ -139,13 +138,23 @@ Messages are of the format <message length (2 octets)><message>."
 (defun handle-msg (con msg)
   (handle-command% con msg))
 
+(defvar *last-time* (GET-UNIVERSAL-TIME))
+(defun handle-broken-po-command (message)
+  (let ((cmd (message message)))
+    (when (and (char= (aref cmd 0) #\\) (< (+ 60 *last-time*) (GET-UNIVERSAL-TIME)))
+      (setq *last-time* (GET-UNIVERSAL-TIME))
+      "Scripts are down. Please try again later. Abusing them may get you kicked.")))
+
 (defmethod handle-event ((con connection) (msg channel-message))
   "Handle a message sent to us somehow :P"
   (unless (search "Shanai:" (message msg) :start2 0 :end2 7);ignore messages sent from us.
-    (let ((wl (handle-wikilinks (message msg))))
-      (if (string= "" wl)
-          (handle-msg con msg)
-          (reply con msg wl)))))
+    (let ((wl (handle-wikilinks (message msg)))
+          (scripts-broken (handle-broken-po-command msg)))
+      (cond ((string= "" wl)
+             (handle-msg con msg))
+             (scripts-broken (reply con msg scripts-broken))
+            (t
+             (reply con msg wl))))))
 
 (defmethod handle-event ((con connection) (msg private-message))
   "Handle a message sent to us somehow :P"

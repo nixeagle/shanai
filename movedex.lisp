@@ -172,5 +172,3 @@ enum Stat { Hp = 0,     Attack = 1,     Defense = 2,
     (typecase name-or-id
       (fixnum (aref *movedex* name-or-id))
       (string (find name-or-id *movedex* :test #'string-equal :key #'name)))))
-
-string-

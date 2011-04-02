@@ -105,3 +105,19 @@ Format is #foobar"
 (defun handle-wikilinks (stg)
   (with-output-to-string (*standard-output*)
       (cl-ppcre:do-scans (ms me rs re "\\[\\[([^\\]]*)\\]\\]" stg) (princ "<a href=\"http://en.wikipedia.org/wiki/") (princ (hunchentoot:url-encode (subseq stg (aref rs 0) (aref re 0)))) (princ "\">") (princ "en:") (princ (cl-who:escape-string (subseq stg (aref rs 0) (aref re 0)))) (princ "</a>")(write-char #\space))))
+
+
+(defmethod handle-command ((cmd (eql :who)) (con connection) (msg message))
+  (let ((cmd (split-at-first #\ (cdr (parse-nickname-and-message msg)))))
+    (when (or (string= "nixeagle" (car (parse-nickname-and-message msg)))
+              (string= "zeroality" (car (parse-nickname-and-message msg))))
+      (when (cdr cmd)
+        (reply con msg (handle-cl-who-tests (cdr cmd)))))))
+
+(defun handle-cl-who-tests (string)
+  (handler-case (eval
+                 (let ((*package* (find-package :pokemon.po.client)))
+                   `(cl-who:with-html-output-to-string (*standard-output*)
+                      ,(read-from-string string nil "(:b \"Sorry malformed input. Did you forget a closing paren?\")"))))
+    (error (condition) (princ-to-string condition))))
+
