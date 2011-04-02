@@ -9,8 +9,10 @@
 (defmethod handle-command ((cmd (eql :tiers)) (con connection) (msg message))
   (reply con msg "<a href=\"http://pokemon-online.eu/forums/showthread.php?1706\">http://pokemon-online.eu/forums/showthread.php?1706</a>"))
 (defmethod handle-command ((cmd (eql :say)) (con connection) (msg message))
-  (reply con msg (subseq (message msg)
-                         (+ (length ",say") (search ",say " (message msg))))))
+  (when (or (string= "nixeagle" (car (parse-nickname-and-message msg)))
+            (string= "zeroality" (car (parse-nickname-and-message msg))))
+    (reply con msg (subseq (message msg)
+                           (+ (length ",say") (search ",say " (message msg)))))))
 (defmethod handle-command ((cmd (eql :client)) (con connection) (msg message))
   (reply con msg "Latest client binary can be downloaded at <a href=\"http://pokemon-online.eu/downloads/Client_17.html\">http://pokemon-online.eu/downloads/Client_17.html</a>"))
 (defmethod handle-command ((cmd (eql :pokedex)) (con connection) (msg message))
@@ -37,7 +39,8 @@
 
 (defmethod handle-command ((cmd (eql :eval)) (con connection) (msg message))
   (let ((cmd (split-at-first #\ (cdr (parse-nickname-and-message msg)))))
-    (when (string= "nixeagle" (car (parse-nickname-and-message msg)))
+    (when (or (string= "nixeagle" (car (parse-nickname-and-message msg)))
+              (string= "zeroality" (car (parse-nickname-and-message msg))))
       (when (cdr cmd)
         (reply con msg (cl-who:with-html-output-to-string (s nil :indent nil)
                          (:code (cl-who:esc (with-output-to-string (s) (pprint
@@ -45,7 +48,8 @@
 
 (defmethod handle-command ((cmd (eql :describe)) (con connection) (msg message))
   (let ((cmd (split-at-first #\ (cdr (parse-nickname-and-message msg)))))
-    (when (string= "nixeagle" (car (parse-nickname-and-message msg)))
+    (when (or (string= "nixeagle" (car (parse-nickname-and-message msg)))
+              (string= "zeroality" (car (parse-nickname-and-message msg))))
       (when (cdr cmd)
         (reply con msg (with-output-to-string (s) (pprint
                                                    (handler-case (describe-to-html-string (eval (let ((*package* (find-package :pokemon.po.client))) (read-from-string (cdr cmd) nil "Sorry malformed input. Did you forget a closing paren?")))) (error (condition) condition)) s)))))))
