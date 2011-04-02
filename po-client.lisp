@@ -379,3 +379,9 @@ else."
       (let ((cmd (split-at-first #\ (message msg))))
         (setf (car cmd) (subseq (car cmd) 0 (1- (length (car cmd)))))
         cmd)))
+
+
+(defun @login-test-ai ()
+  "Test function to log the AI in and join Shanai"
+  (po-login-ai (progn (po-start-listen-loop) (sleep 3) @po-socket@))
+  (print-po-raw @po-socket@ (encode-join "Shanai")))
