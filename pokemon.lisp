@@ -547,9 +547,6 @@ at one time."))
          (let ((sp (split-sequence #\, line)))
            (list (parse-integer (car sp)) (cdr sp))))))
 
-(defun import-pokemon-ids-and-names ()
-  (import-csv-as-list "c:/cygwin/home/Tim/repos/pokedex/pokedex/data/csv/pokemon.csv"))
-
 (defparameter *pokedex* (make-hash-table :test #'eq)
   "Global database of pokemon data.
 
