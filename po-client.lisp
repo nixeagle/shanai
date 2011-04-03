@@ -138,10 +138,30 @@ Messages are of the format <message length (2 octets)><message>."
 (defun handle-msg (con msg)
   (handle-command% con msg))
 
+(defun split-at-first (item sequence)
+  (let ((pos (position item sequence)))
+    (if pos
+        (cons (subseq sequence 0 pos)
+              (subseq sequence (1+ pos)))
+        (cons sequence
+              nil))))
+
+
+(defun commandp (con msg-string)
+  (not (not (find #\, msg-string :end 1))))
+
+(defun parse-nickname-and-message (msg)
+  (if (typep msg 'private-message)
+      (let ((cmd (split-at-first #\ (message msg))))
+        (cons nil (message msg)))
+      (let ((cmd (split-at-first #\ (message msg))))
+        (setf (car cmd) (subseq (car cmd) 0 (1- (length (car cmd)))))
+        cmd)))
+
 (defvar *last-time* (GET-UNIVERSAL-TIME))
 (defun handle-broken-po-command (message)
-  (let ((cmd (message message)))
-    (when (and (char= (aref cmd 0) #\\) (< (+ 60 *last-time*) (GET-UNIVERSAL-TIME)))
+  (let ((cmd (cdr (parse-nickname-and-message message))))
+    (when (and (char= (aref cmd 0) #\/) (< (+ 60 *last-time*) (GET-UNIVERSAL-TIME)))
       (setq *last-time* (GET-UNIVERSAL-TIME))
       "Scripts are down. Please try again later. Abusing them may get you kicked.")))
 
@@ -150,10 +170,10 @@ Messages are of the format <message length (2 octets)><message>."
   (unless (search "Shanai:" (message msg) :start2 0 :end2 7);ignore messages sent from us.
     (let ((wl (handle-wikilinks (message msg)))
           (scripts-broken (handle-broken-po-command msg)))
-      (cond ((string= "" wl)
-             (handle-msg con msg))
-             (scripts-broken (reply con msg scripts-broken))
-            (t
+      (cond  (scripts-broken (reply con msg scripts-broken))
+             ((string= "" wl)
+              (handle-msg con msg))
+             (t
              (reply con msg wl))))))
 
 (defmethod handle-event ((con connection) (msg private-message))
@@ -192,9 +212,6 @@ else."
                                         appending (list 0 (char-code s))))))
     (print-po-raw socket octs)
     octs))
-
-(defun print-po-msg (socket string)  
-  )
 
 (defun make-po-octet-string (string &key (external-format :utf-16))
   (declare (type string string))
@@ -359,17 +376,7 @@ else."
 (defun encode-join (channel-name)
   (encode-message (make-instance 'join :user-id channel-name)))
 
-(defun split-at-first (item sequence)
-  (let ((pos (position item sequence)))
-    (if pos
-        (cons (subseq sequence 0 pos)
-              (subseq sequence (1+ pos)))
-        (cons sequence
-              nil))))
 
-
-(defun commandp (con msg-string)
-  (not (not (find #\, msg-string :end 1))))
 
 (defmethod handle-command (cmd (con connection) (msg message))
   (reply con msg "Sorry I don't know about that one."))
@@ -381,13 +388,7 @@ else."
         (handle-command (intern (string-upcase (subseq (car cmd) 1)) :keyword)
                         con msg)))))
 
-(defun parse-nickname-and-message (msg)
-  (if (typep msg 'private-message)
-      (let ((cmd (split-at-first #\ (message msg))))
-        (cons nil (message msg)))
-      (let ((cmd (split-at-first #\ (message msg))))
-        (setf (car cmd) (subseq (car cmd) 0 (1- (length (car cmd)))))
-        cmd)))
+
 
 
 (defun @login-test-ai ()
