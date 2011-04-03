@@ -1,0 +1,5 @@
+Various links to good information about various aspects of pokemon.
+
+* EV
+  - http://pokemontopaz.net/zero/evs/evs.html Talks about diminishing
+    returns of EV stats.
