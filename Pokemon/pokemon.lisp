@@ -502,7 +502,7 @@ Indexed by the pokemon's ID in the national pokedex.")
               (special-attack stats) (special-defense stats)
               (speed stats)))))
 
-(defparameter *po-directory* "c:/cygwin/home/Tim/repos/pogeymon-online/"
+(ccl:defstaticvar *po-directory* "c:/cygwin/home/Tim/repos/pogeymon-online/"
   "Full path to where Pokemon Online source/installation is.
 
 Make sure your file path ends with a trailing slash!")
