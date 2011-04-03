@@ -1,4 +1,8 @@
 ;;; needs to be in some package...
+(defpackage #:shanai.po.protocol
+  (:use :cl :shanai.binary-data))
+
+(in-package :shanai.po.protocol)
 
 (define-binary-class color ()
   ((spec u1)
