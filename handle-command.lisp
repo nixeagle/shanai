@@ -65,29 +65,33 @@
     (:pre (cl-who:esc (with-output-to-string (s) (describe object s))))))
 
 (defun move-to-html-string (move)
-  (flet ((header-col (text)
-           (cl-who:with-html-output (s *standard-output*)
-             (:td :align :center :bgcolor :black
-                  (:font :color "white" (:b (cl-who:esc text))))))
-         (stat-box (num)
-           (cl-who:with-html-output (s *standard-output*)
-             (:td :align :center :bgcolor :gray
-                  (:font :color "black" (:b (cl-who:esc (princ-to-string num))))))))
-    (cl-who:with-html-output-to-string (*standard-output*)
-      (:table :width "80%" :align :center :cellspacing 0 :cellpadding 0 :border 1
-              (:tr (header-col "Move Name")
-                   (header-col "Move Type")
-                   (header-col "Move Category")
-                   (header-col "Base Power")
-                   (header-col "Accuracy")
-                   (header-col "PP MAX"))
-              (:tr (stat-box (pokemon::name move))
-                   (stat-box (pokemon::poketype move))
-                   (stat-box (pokemon::damage-class move))
-                   (stat-box (pokemon::power move))
-                   (stat-box (pokemon::accuracy move))
-                   (stat-box (pokemon::pp move)))
-              (:tr (:td (cl-who:esc (pokemon::effect-description move))))))))
+  (cl-who:with-html-output-to-string (*standard-output*)
+    (:TABLE :ALIGN :CENTER :CELLPADDING 2 :CELLSPACING 0 :STYLE
+            "border-width:1px; border-style:solid; border-color:#000;"
+            (:THEAD :STYLE "font-weight:bold;"
+                    (:TR :STYLE "background-color:#b0b0b0;"
+                         (:TD :ALIGN :CENTER "Name")
+                         (:TD :ALIGN :CENTER "Type")
+                         (:TD :ALIGN :CENTER "Category")
+                         (:TD :ALIGN :CENTER "Power")
+                         (:TD :ALIGN :CENTER "Acc.")
+                         (:TD :ALIGN :CENTER "PP")
+                         (:TD :ALIGN :CENTER "Priority")
+                         (:TD :ALIGN :CENTER "Range")))
+            (:TBODY :STYLE "font-weight:bold;"
+                    (:TR :STYLE "background-color:#c0c0c0; vertical-align:middle;"
+                         (:TD :ALIGN :CENTER (cl-who:esc (pokemon::name move)))
+                         (:TD :ALIGN :CENTER (:IMG :SRC  (format nil "Themes/Classic/types/type~A.png" (position (alexandria:make-keyword (pokemon::poketype move)) pokemon::+pokemon-types+))))
+                         (:TD :ALIGN :CENTER (cl-who:str (pokemon::damage-class move)))
+                         (:TD :ALIGN :CENTER (cl-who:str (pokemon::power move)))
+                         (:TD :ALIGN :CENTER (cl-who:str (pokemon::accuracy move)))
+                         (:TD :ALIGN :CENTER (cl-who:str (pokemon::pp move)))
+                         (:TD :ALIGN :CENTER (cl-who:str (pokemon::priority move)))
+                         (:TD :ALIGN :CENTER (cl-who:str (pokemon::range move)))))
+            (:TFOOT :STYLE "font-style:italic;"
+                    (:TR :STYLE "background-color:#c2c2c2;"
+                         (:TD :COLSPAN 8 (:STRONG :STYLE "font-style:normal;" "Description ")
+                              (cl-who:esc (pokemon::effect-description move))))))))
 
 (defmethod handle-command ((cmd (eql :test)) (con connection) (msg message))
   (let ((cmd (split-at-first #\ (cdr (parse-nickname-and-message msg)))))
@@ -117,6 +121,14 @@ Format is #foobar"
               (string= "zeroality" (car (parse-nickname-and-message msg))))
       (when (cdr cmd)
         (reply con msg (handle-cl-who-tests (cdr cmd)))))))
+
+
+(defmethod handle-command ((cmd (eql :rawwho)) (con connection) (msg message))
+  (let ((cmd (split-at-first #\ (cdr (parse-nickname-and-message msg)))))
+    (when (or (string= "nixeagle" (car (parse-nickname-and-message msg)))
+              (string= "zeroality" (car (parse-nickname-and-message msg))))
+      (when (cdr cmd)
+        (reply con msg (cl-who:escape-string (handle-cl-who-tests (cdr cmd))))))))
 
 (defun handle-cl-who-tests (string)
   (handler-case (eval
