@@ -3,3 +3,9 @@ Various links to good information about various aspects of pokemon.
 * EV
   - http://pokemontopaz.net/zero/evs/evs.html Talks about diminishing
     returns of EV stats.
+
+* Battle formula
+  - http://www.smogon.com/dp/articles/damage_formula
+
+* PRNG
+  - [[http://bulbapedia.bulbagarden.net/wiki/Pseudo-random_number_generation_in_Pok%C3%A9mon][Bulbapedia article on PRNG]].
