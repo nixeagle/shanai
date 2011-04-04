@@ -488,10 +488,17 @@ Indexed by the pokemon's ID in the national pokedex.")
 (defparameter *typedex* (make-hash-table :test #'eq)
   "Global database mapping typeids to type names.")
 
+(defparameter +pokemon-types+
+  '(:normal :fighting :flying :poison :ground :rock :bug :ghost
+    :steel :fire :water :grass :electric :psychic :ice :dragon :dark :???)
+  "Listing of all the types in pokemon.
+
+Order is important!")
+
 (deftype poketype ()
   "Listing of the 17 valid pokemon types in Generation 5."
-  '(member :bug :dark :dragon :electric :fight :fire :flying :ghost
-    :grass :ground :ice :normal :poison :psychic :rock :steel :water))
+  '(member :bug :dark :dragon :electric :fighting :fire :flying :ghost
+    :grass :ground :ice :normal :poison :psychic :rock :steel :water :???))
 
 
 (defmethod print-object ((obj pokemon) stream)
