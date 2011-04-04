@@ -161,20 +161,22 @@ Messages are of the format <message length (2 octets)><message>."
 (defvar *last-time* (GET-UNIVERSAL-TIME))
 (defun handle-broken-po-command (message)
   (let ((cmd (cdr (parse-nickname-and-message message))))
-    (when (and (char= (aref cmd 0) #\/) (< (+ 60 *last-time*) (GET-UNIVERSAL-TIME)))
+    (when (and (or (char= (aref cmd 0) #\/)
+                   (char= (aref cmd 0) #\!))
+               (< (+ 60 *last-time*) (GET-UNIVERSAL-TIME)))
       (setq *last-time* (GET-UNIVERSAL-TIME))
       "Scripts are down. Please try again later. Abusing them may get you kicked.")))
 
 (defmethod handle-event ((con connection) (msg channel-message))
   "Handle a message sent to us somehow :P"
-  (unless (search "Shanai:" (message msg) :start2 0 :end2 7);ignore messages sent from us.
+  (unless (and (< 6 (length (message msg))) (search "Shanai:" (message msg) :start2 0 :end2 7));ignore messages sent from us.
     (let ((wl (handle-wikilinks (message msg)))
           (scripts-broken (handle-broken-po-command msg)))
       (cond  (scripts-broken (reply con msg scripts-broken))
              ((string= "" wl)
               (handle-msg con msg))
              (t
-             (reply con msg wl))))))
+              (reply con msg wl))))))
 
 (defmethod handle-event ((con connection) (msg private-message))
   "Handle a message sent to us somehow :P"
@@ -289,7 +291,7 @@ else."
                      'connection args)))
     (reinitialize-instance sock
                            :stream (to-flexi-stream (usocket:socket-stream sock)))))
-
+‏
 
 (defmethod print-object ((obj message) s)
   (print-unreadable-object (obj s :type t)
