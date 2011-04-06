@@ -35,3 +35,19 @@ reloading each entry after that piecemeal."
                                                :type (append (poketype pokemon)
                                                              (list (nth (third pline) *typedex*))))))))))
 
+(defstruct (pokemon-uid (:predicate)
+                        (:copier)
+                        (:constructor pokemon-uid
+                                      (identifier &optional (sub-identifier 0)
+                                                  &aux (id identifier)
+                                                  (forme-id sub-identifier))))
+  "Pokedex ids.
+
+ID is the primary pokemon's identifier as found in the national pokedex for
+the relevant pokemon generation.
+
+FORME-ID indicates which forme is being identified. We default this to
+zero, pokemon with multiple formes will have a positive number associated
+with this."
+  (id 60666 :type (unsigned-byte 2))
+  (forme-id 255 :type (unsigned-byte 1)))
