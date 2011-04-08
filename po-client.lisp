@@ -258,9 +258,9 @@ else."
                                     :external-format external-format)))
 
 
-(defun po-start-listen-loop ()
+(defun po-start-listen-loop (&key (port 5777))
   (bt:make-thread (lambda ()
-                    (let ((*po-socket* (connect "nixeagle.org" 5777 :nickname "AI")))
+                    (let ((*po-socket* (connect "nixeagle.org" port :nickname "AI")))
                       (setf @po-socket@ *po-socket*
                             *po-socket-recv-log* '())
                       (unwind-protect
