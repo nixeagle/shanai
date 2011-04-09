@@ -7,7 +7,7 @@
 (defmethod handle-command ((cmd (eql :forums)) (con connection) (msg message))
   (reply con msg "<a href=\"http://pokemon-online.eu/forums/\">http://pokemon-online.eu/forums/</a>"))
 (defmethod handle-command ((cmd (eql :tour)) (con connection) (msg message))
-  (reply con msg "There is a tournement going on in #tournements!"))
+  (reply con msg "There is a tournement going on in #tournaments!"))
 (defmethod handle-command ((cmd (eql :tiers)) (con connection) (msg message))
   (reply con msg "<a href=\"http://pokemon-online.eu/forums/showthread.php?1706\">http://pokemon-online.eu/forums/showthread.php?1706</a>"))
 (defmethod handle-command ((cmd (eql :say)) (con connection) (msg message))
