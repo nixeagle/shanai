@@ -55,6 +55,8 @@
    (default-tier utf16-qt-string)
    (team utf16-qt-string)))
 
+(define-binary-class poke-personal
+    ((pokemon-id pokemon-unique-id)))
 (define-binary-type pokestats ()
   (:reader (in)
            (pokemon::battle-stats (read-value 'u1 in)

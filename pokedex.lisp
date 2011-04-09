@@ -20,20 +20,25 @@ reloading each entry after that piecemeal."
       (with-po-data-file ("pokes/pokemons.txt"
                           *pokedex* pline hash)
         (let ((pokemon (gethash (pokemon-id-from-parsed-line pline) hash)))
-          (setf pokemon (reinitialize-instance pokemon :name (third pline)))))
+          (when pokemon
+            (setf pokemon (reinitialize-instance pokemon :name (third pline))))))
 
       (with-po-data-file ("pokes/poke_weight.txt" *pokedex* pline hash)
         (with-pokemon (pokemon pline hash)
-          (setf pokemon (reinitialize-instance pokemon :weight (third pline)))))
+          (when pokemon
+            (setf pokemon (reinitialize-instance pokemon :weight (third pline))))))
       (with-po-data-file ("pokes/poke_type1-5G.txt" *pokedex* pline hash)
         (with-pokemon (pokemon pline hash)
-          (setf pokemon (reinitialize-instance pokemon
-                                               :type (list (nth (third pline) *typedex*))))))
+          (when pokemon
+            (setf pokemon (reinitialize-instance pokemon
+                                                 :type (list (nth (third pline) *typedex*)))))))
       (with-po-data-file ("pokes/poke_type2-5G.txt" *pokedex* pline hash)
         (with-pokemon (pokemon pline hash)
-          (setf pokemon (reinitialize-instance pokemon
-                                               :type (append (poketype pokemon)
-                                                             (list (nth (third pline) *typedex*))))))))))
+          (when pokemon
+            (setf pokemon (reinitialize-instance pokemon
+                                                 :type (append (poketype pokemon)
+                                                               (list (nth (third pline) *typedex*)))))))))))
+(in-package :shanai.pokedex)
 
 (defstruct (pokemon-uid (:predicate)
                         (:copier)
@@ -51,3 +56,23 @@ zero, pokemon with multiple formes will have a positive number associated
 with this."
   (id 60666 :type (unsigned-byte 2))
   (forme-id 255 :type (unsigned-byte 1)))
+
+(defun make-pokedex ()
+  (make-hash-table :test #'equalp))
+
+(defparameter *pokedex* (make-pokedex)
+  "Global pokedex and repository of info.")
+
+
+(defun getpoke (id &optional (generation 5))
+  (declare (ignore generation)
+           (type (or pokemon-uid string) id))
+  (gethash id *pokedex*))
+
+(defun (setf getpoke) (value id &optional (generation 5))
+  (declare (ignore generation)
+           (type pokemon-uid id)
+           (type pokemon::pokemon value))
+  (setf (gethash (pokemon::name value) *pokedex*) value
+        (gethash id *pokedex*) value))
+

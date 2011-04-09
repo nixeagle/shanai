@@ -19,9 +19,14 @@
   (let ((cmd (split-at-first #\ (cdr (parse-nickname-and-message msg)))))
     (when (cdr cmd)
       (let ((int (parse-integer (cdr cmd) :junk-allowed t)))
-        (when int
-          (let ((poke (gethash int pokemon::*pokedex*)))
-            (reply con msg (if poke (html-escape (princ-to-string poke))
+        (if int
+            (let ((poke (gethash int pokemon::*pokedex*)))
+              (reply con msg (if poke (html-escape (princ-to-string poke))
+                                "<b>Could</b> not find it!
+<br/>
+<br/>What happens if we sprinkle some newlines in?")))
+            (let ((poke (find-pokemon-by-name (cdr cmd))))
+              (reply con msg (if poke (html-escape (princ-to-string poke))
                                 "<b>Could</b> not find it!
 <br/>
 <br/>What happens if we sprinkle some newlines in?"))))))))
@@ -172,7 +177,9 @@ Format is #foobar"
       (when (and lvl basestats)
         (reply con msg (handle-ev-iv-chart (other-formula-intervals lvl basestats)))))))
 
-
+(defun find-pokemon-by-name (term)
+  (loop for val being the hash-value of pokemon::*pokedex*
+     when (string-equal (pokemon::name val) term) return val))
 (defmethod handle-command ((cmd (eql :scripts)) (con connection) (msg message))
   (reply con msg "<a href=\"http://pokemon-online.eu/scripts.js\">PO Beta server Scripts.js</a>"))
 (defun handle-ev-iv-chart (array)
