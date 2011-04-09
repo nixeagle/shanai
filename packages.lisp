@@ -15,6 +15,17 @@
 
 (defpackage #:shanai.po.bot)
 
+(defpackage #:shanai.pokedex
+  (:use :cl))
+
+(defpackage #:shanai.po.db
+  (:use :cl)
+  (:documentation "Read and write Pokemon Online data files.
+
+These files are stored in bin/db/ and containing subdirectories of the
+Pokemon Online git repository source."))
+
+
 (defpackage #:shanai.pokemon
    (:use :cl)
    (:import-from :eos #:is #:test)
