@@ -1,5 +1,6 @@
 (in-package :pokemon)
 
+
 (defclass ability ()
   ((name :name :name :initarg :name :type 'string)
    (number :name :number :initarg :number :type 'fixnum :readers (number))
