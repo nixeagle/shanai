@@ -509,7 +509,7 @@ Order is important!")
               (special-attack stats) (special-defense stats)
               (speed stats)))))
 
-(ccl:defstaticvar *po-directory* "c:/cygwin/home/Tim/repos/pogeymon-online/"
+(defvar *po-directory* "c:/cygwin/home/Tim/repos/pogeymon-online/"
   "Full path to where Pokemon Online source/installation is.
 
 Make sure your file path ends with a trailing slash!")
