@@ -1,5 +1,3 @@
-
-
 (in-package :pokemon.po.client)
 (defvar *po-socket*
   "Global dynamic variable for holding pokemon online sockets.
@@ -148,15 +146,18 @@ Messages are of the format <message length (2 octets)><message>."
 
 
 (defun commandp (con msg-string)
-  (not (not (find #\, msg-string :end 1))))
-
+  (not (not (and (< 0 (length msg-string)) (find #\, msg-string :end 1)))))
+(defvar *lastmsg* "")
 (defun parse-nickname-and-message (msg)
-  (if (typep msg 'private-message)
-      (let ((cmd (split-at-first #\ (message msg))))
-        (cons nil (message msg)))
-      (let ((cmd (split-at-first #\ (message msg))))
-        (setf (car cmd) (subseq (car cmd) 0 (1- (length (car cmd)))))
-        cmd)))
+  (setq *lastmsg* msg)
+  (if (and (find #\ (message msg)) (find #\: (message msg)))
+      (if (typep msg 'private-message)
+        (let ((cmd (split-at-first #\ (message msg))))
+          (cons nil (message msg)))
+        (let ((cmd (split-at-first #\ (message msg))))
+          (setf (car cmd) (subseq (car cmd) 0 (1- (length (car cmd)))))
+          cmd))
+      (cons nil (message msg))))
 
 (defvar *last-time* (GET-UNIVERSAL-TIME))
 (defun handle-broken-po-command (message)
@@ -170,13 +171,14 @@ Messages are of the format <message length (2 octets)><message>."
 (defmethod handle-event ((con connection) (msg channel-message))
   "Handle a message sent to us somehow :P"
   (unless (and (< 6 (length (message msg))) (search "Shanai:" (message msg) :start2 0 :end2 7));ignore messages sent from us.
-    (let ((wl (handle-wikilinks (message msg)))
-          (scripts-broken (handle-broken-po-command msg)))
-      (cond  (scripts-broken (reply con msg scripts-broken))
-             ((string= "" wl)
-              (handle-msg con msg))
-             (t
-              (reply con msg wl))))))
+    (unless (= 0 (length  (message msg)))
+      (let ((wl (handle-wikilinks (message msg)))
+            (scripts-broken (handle-broken-po-command msg)))
+        (cond  (scripts-broken (reply con msg scripts-broken))
+               ((string= "" wl)
+                (handle-msg con msg))
+               (t
+                (reply con msg wl)))))))
 
 (defmethod handle-event ((con connection) (msg private-message))
   "Handle a message sent to us somehow :P"
@@ -268,7 +270,7 @@ else."
                                (progn (loop for sock = (usocket:wait-for-input *po-socket*)
                                          while sock 
                                          do (handle-po-message sock '()#+ () (read-po-message sock))))
-                             (error (condition) (print-po-msg *po-socket* (princ-to-string condition))))
+                             (error (condition) #+ () (print-po-msg *po-socket* (princ-to-string condition))))
                         (usocket:socket-close *po-socket*))
                       (usocket:socket-close *po-socket*))
                     ) :name "PO Socket loop" :initial-bindings `((*standard-output* . *standard-output*))))
@@ -282,16 +284,16 @@ else."
 (defun to-flexi-stream (s &key (external-format :utf-16))
   (flexi-streams:make-flexi-stream s :external-format (flexi-streams:make-external-format external-format)))
 
+
+
 (defun connect (host port &rest args &key (nickname "Shanai"))
   "Create a socket connected to HOST on PORT."
   (declare (ignore nickname))
   (let ((sock (apply #'change-class
-                     (usocket:socket-connect host port
-                                             :element-type '(unsigned-byte 8))
+                     (usocket:socket-connect host port :element-type '(unsigned-byte 8))
                      'connection args)))
     (reinitialize-instance sock
                            :stream (to-flexi-stream (usocket:socket-stream sock)))))
-‏
 
 (defmethod print-object ((obj message) s)
   (print-unreadable-object (obj s :type t)
@@ -329,11 +331,7 @@ else."
 (defmethod decode-message-2 (len connection)
   (let ((s connection #+ () (usocket:socket-stream connection)))
     (make-instance 'trainer :user-id (read-u4 s) :name (read-po-octet-string s)
-                   :info (read-po-octet-string s) :losing-msg (loop for i = (read-byte s nil) while i collect i) :winning-msg nil
-                   ;:info (read-po-octet-string s) :losing-msg (read-po-octet-string s)
-    ;               :winning-msg (read-po-octet-string s)
-                   )
-    ))
+                   :info (read-po-octet-string s) :losing-msg (loop for i = (read-byte s nil) while i collect i) :winning-msg nil)))
 
 (defmethod print-object ((obj trainer) s)
   (print-unreadable-object (obj s)
@@ -385,7 +383,7 @@ else."
 
 (defun handle-command% (con msg)
   (when (commandp con (cdr (parse-nickname-and-message msg)))
-    (let ((cmd (split-at-first #\ (cdr (parse-nickname-and-message msg)))))
+    (let ((cmd (split-at-first #\Space  (cdr (parse-nickname-and-message msg)))))
       (when cmd
         (handle-command (intern (string-upcase (subseq (car cmd) 1)) :keyword)
                         con msg)))))
@@ -396,4 +394,5 @@ else."
 (defun @login-test-ai ()
   "Test function to log the AI in and join Shanai"
   (po-login-ai (progn (po-start-listen-loop) (sleep 3) @po-socket@))
-  (print-po-raw @po-socket@ (encode-join "Shanai")))
+  (print-po-raw @po-socket@ (encode-join "Shanai"))
+  (print-po-raw @po-socket@ (encode-join "Tournements")))
