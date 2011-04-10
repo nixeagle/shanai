@@ -395,4 +395,4 @@ else."
   "Test function to log the AI in and join Shanai"
   (po-login-ai (progn (po-start-listen-loop) (sleep 3) @po-socket@))
   (print-po-raw @po-socket@ (encode-join "Shanai"))
-  (print-po-raw @po-socket@ (encode-join "Tournements")))
+  (print-po-raw @po-socket@ (encode-join "Tournaments")))

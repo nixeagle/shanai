@@ -1,5 +1,7 @@
 (in-package :pokemon.po.client)
-
+(defun parse-possible-command (command-string)
+  (cl-ppcre:register-groups-bind (nick cmd args) ("(?:([^:]*): )?,([^\\s]*) ?(.*)" command-string)
+    (values nick cmd args)))
 (defmethod handle-command ((cmd (eql :help)) (con connection) (msg message))
   (reply con msg "ooh look, a <a href=\"http://google.com/\">google</a>!"))
 (defmethod handle-command ((cmd (eql :source)) (con connection) (msg message))
@@ -34,12 +36,13 @@
 <br/>What happens if we sprinkle some newlines in?"))))))))
 
 (defmethod handle-command ((cmd (eql :movedex)) (con connection) (msg message))
-  (let ((cmd (split-at-first #\ (cdr (parse-nickname-and-message msg)))))
-    (when (cdr cmd)
-      (let ((int (parse-integer (cdr cmd) :junk-allowed t)))
+  (multiple-value-bind (nick cmd args) (parse-possible-command (message msg))
+    (declare (ignore nick))
+    (when cmd
+      (let ((int (parse-integer args :junk-allowed t)))
         (if (and int (< 0 int pokemon::+total-moves+))
             (reply con msg (move-to-html-string (pokemon::find-move int)))
-            (let ((poke (pokemon::find-move (cdr cmd))))
+            (let ((poke (pokemon::find-move args)))
               (if poke
                   (reply con msg (move-to-html-string poke))
                   (reply con msg "Sorry that move number does not exist!"))))))))
