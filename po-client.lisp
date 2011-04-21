@@ -186,7 +186,7 @@ Messages are of the format <message length (2 octets)><message>."
   (ppcre:register-groups-bind (m) ((ppcre:create-scanner regex :case-insensitive-mode t) string)
     (format nil "~A contains ~A which matches regular expression: ~A"
             string m regex)))
-(demo-regex  "[tag]Trololol")
+
 (defun maybe-tell-about-name (name stream)
   (or (loop for regex in *warnpatterns*
          do
