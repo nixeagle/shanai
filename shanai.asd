@@ -4,7 +4,8 @@
 ;;; written to mandate using multiple source files.
 
 (asdf:defsystem :shanai
-  :depends-on (:eos :hunchentoot :alexandria :split-sequence :iterate :cl-who)
+  :depends-on (:eos :hunchentoot :alexandria :split-sequence :iterate :cl-who
+                    :shanai.binary-data :flexi-streams)
   :components
   ((:file "packages")
    (:module "Pokemon"

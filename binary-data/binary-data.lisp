@@ -1,4 +1,4 @@
-(in-package :lisp-user)
+(in-package :cl-user)
 (defpackage #:shanai.binary-data
   (:use :cl :com.gigamonkeys.binary-data)
   (:export :unsigned-integer :u1 :u2 :u3 :u4 :s1 :s2 :s3
@@ -62,3 +62,10 @@
 (define-binary-type utf16-qt-string ()
   (generic-qt-string :external-format :utf-16))
 
+(define-binary-type qtstring ()
+  (utf16-qt-string))
+
+#+ () (defun read-u1 (in)
+  (declare (type stream in)
+           (optimize (speed 3)))
+  (read-byte in))

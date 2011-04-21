@@ -1,11 +1,12 @@
 ;;; needs to be in some package...
-(defpackage #:shanai.po.protocol
+
+(cl:defpackage #:shanai.po.protocol
   (:use :cl :shanai.binary-data))
 
 (in-package :shanai.po.protocol)
 
 (define-binary-class color ()
-  ((spec u1)
+  ((spec u4)
    (alpha u2)
    (red u2)
    (green u2)
@@ -55,7 +56,7 @@
    (default-tier utf16-qt-string)
    (team utf16-qt-string)))
 
-(define-binary-class poke-personal
+#+ () (define-binary-class poke-personal
     ((pokemon-id pokemon-unique-id)))
 (define-binary-type pokestats ()
   (:reader (in)

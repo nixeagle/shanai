@@ -11,7 +11,9 @@ Local to each thread that is created.")
 
 (defclass connection (usocket:stream-usocket)
   ((nickname :initarg :nickname :reader nickname)
-   (channels :initarg :channels :accessor channels)))
+   (channels :initarg :channels :accessor channels)
+   (battles :initarg :battles :accessor battles)
+   (trainers :initarg :trainers :accessor trainers)))
 
 (defclass channel-message (message)
   ((id :initarg :channel-id :reader channel-id)))
@@ -36,7 +38,7 @@ Local to each thread that is created.")
 (defclass packet ()
   ((contents :initarg :contents :reader contents)
    (command-id :allocation :class :reader command-id)))
-
+1
 
 (defun read-u1 (in-stream)
   (loop with value = 0
@@ -110,7 +112,16 @@ stream operations."
 Messages are of the format <message length (2 octets)><message>."
   ;; need to convert this to returning a flexi stream and or an in memory
   ;; stream..
-  (loop for i from 1 to (read-u2 socket)
+  (loop for i from 1 to (read-u2 (usocket:socket-stream socket))
+     collecting (read-byte (usocket:socket-stream socket))))
+
+(defun read-po-message-3 (socket)
+  "Read the toplevel portion of a PO message.
+
+Messages are of the format <message length (2 octets)><message>."
+  ;; need to convert this to returning a flexi stream and or an in memory
+  ;; stream..
+  (loop for i from 2 to (read-u2 socket)
      collecting (read-byte (usocket:socket-stream socket))))
 
 (defun client-ping (socket)
@@ -118,18 +129,119 @@ Messages are of the format <message length (2 octets)><message>."
   (loop for b in '(0 1 #x0c)
        do (write-byte b (usocket:socket-stream socket)))
   (force-output (usocket:socket-stream socket)))
+(defvar *sock-rcv-log* nil)
+(defun handle-packet (socket value type id)
+  (log-packet value type id)
+  (case type
+    (:player-list (progn  #+ () (maybe-write-username (nth 3 value) socket)
+                          (maybe-tell-about-name (nth 3 value) socket)))))
 
+(defparameter *channelnames* nil)
+(defun maybe-write-username (string stream)
+  (alexandria:appendf *channelnames* (list string))
+   (when (< 19 (length *channelnames*))
+    (write-channel-message (pprint-to-string *channelnames*) stream :id 31)
+    (setq *channelnames* nil)))
+(defparameter *whitelistusernames*
+  (list "BooBerry"
+        "Grahamthesexykid"
+        "Jass"
+        "sexysceptilez"
+        "SirPsychoSexy"
+        "Betch Slutemberg"
+        "xXSexyHeartsXx"))
+
+(defparameter *warnpatterns*
+  (list "(fuck)" 
+        "(sh[i1]t)"
+        "(anus)"
+        "(n[i1]gg[e3]r)" 
+        "(cunt)" 
+        "(wh[o0]re)"
+        "(Balls)"
+        "(fag)" 
+        "(tr[o0]l)" 
+        "(ass+\\b|\\bass+)" 
+        "(tit)"
+        "(fart)"
+        "(deepthro[au]t)"
+;        "(admin)"
+        "(staff)"
+;        "(wxwxwx)"
+        "(b[0o][0o]+b)" 
+        "(cl[i1]t)" 
+        "(c[o0]ck)" 
+        "(cum)"
+        "(s[l1]ut)"
+        "(qu[3e][3e]+f)"
+        "(d[o0]uche)"
+        "(b[i1]tch)" 
+        "(s[e3]x)"
+        "(卐)")))
+
+(defparameter *case-sensitive-warn-patterns*
+  (list #+ () "([A-Z]{7,})"))
+
+(defun demo-regex (regex string)
+  (ppcre:register-groups-bind (m) ((ppcre:create-scanner regex :case-insensitive-mode t) string)
+    (format nil "~A contains ~A which matches regular expression: ~A"
+            string m regex)))
+(demo-regex  "[tag]Trololol")
+(defun maybe-tell-about-name (name stream)
+  (or (loop for regex in *warnpatterns*
+         do
+           (ppcre:register-groups-bind (badword) ((ppcre:create-scanner regex :case-insensitive-mode t) name)
+             (and (not (loop for s in *whitelistusernames*
+                          when (string-equal name s)
+                          return t))
+                  (write-channel-message (format nil "<b>Problematic name! <i>~A</i> contains ~A which matches regular expression: ~A</b>" (html-escape-string name)
+                                                 (html-escape-string badword)
+                                                 (html-escape-string regex)) stream :id 31)))
+           )
+      (loop for regex in *case-sensitive-warn-patterns*
+         do
+           (ppcre:register-groups-bind (badword) ((ppcre:create-scanner regex :case-insensitive-mode nil) name)
+             (write-channel-message (format nil "<b>Problematic name! <i>~A</i> contains ~A which matches regular expression: ~A</b>" (html-escape-string name)
+                                            (html-escape-string badword)
+                                            (html-escape-string regex)) stream :id 31))
+           )))
+(ppcre:register-groups-bind (badword) ("(zeroality)" "zeroality-")
+         (write-channel-message (format nil "Problematic name! <i>~A</i> contains ~A which matches regular expression: ~A" "zeroality-" badword "(zeroality)") @po-socket@ :id 31))
+(defun log-packet (value type id)
+  (if value
+      (setf *sock-rcv-log*
+            (cons (cons type value) *sock-rcv-log*))
+      (setf *sock-rcv-log* (cons (cons type nil) *sock-rcv-log*))))
+(defvar *pingcount* 0)
+(defvar *temp* nil)
 (defun handle-po-message (socket octet-list)
-  (let ((len (1- (read-po-message-length socket))))
-    (let ((cmd (read-byte (usocket:socket-stream socket))))
-      (case cmd
-        (#x0c (client-ping socket))
-        (otherwise (handle-event socket (decode cmd socket :len len)))))))
+  (let ((po-octets (read-po-message socket)))
+    (let ((len (1- (length po-octets))))
+      (let ((cmd (nth 0 po-octets)))
+        (with-input-from-octet-vector (s2 po-octets)
+          (case cmd
+            (#x0c (progn (client-ping socket)
+                         (when (and (not *isalpha*) (= 0 (mod (incf *pingcount*) 5)))
+                           (reply @po-socket@ (make-instance 'channel-message :channel-id 8
+                                                             :message "/players") "/players"))))
+            (otherwise #+ () (progn (multiple-value-bind (v msgtype msgid) (funcall (protocol-handler cmd) s2)
+                                      #+ ()  (handle-packet socket msgtype v msgid))
+                                    #+ () (handle-event socket (decode cmd po-octets :len len)))
+
+                       (progn (read-u1 s2)
+                              (setq *temp* (list po-octets cmd len))
+                         (multiple-value-bind (v msgtype msgid) (funcall (protocol-handler cmd) s2)
+                           (if v (handle-packet socket  v msgtype msgid)
+                               (setq *temp* (list msgtype v))
+                              #+ () (log-packet (list (cdr po-octets)) msgtype msgid)))
+                              (handle-event socket (decode cmd (cdr po-octets)))))))))))
 
 (defun reply (con target msg)
   (typecase target
     (channel-message
-     (print-po-raw con (encode-message (make-instance 'channel-message :channel-id (channel-id target) :message msg))))
+     (when (or *isalpha* (or (= 8 (channel-id target))
+))
+         (print-po-raw con (encode-message (make-instance 'channel-message :channel-id (channel-id target) :message msg)))))
     (private-message
      (print-po-raw con (encode-message (make-instance 'private-message :user-id (user-id target) :message msg))))))
 
@@ -143,10 +255,22 @@ Messages are of the format <message length (2 octets)><message>."
               (subseq sequence (1+ pos)))
         (cons sequence
               nil))))
+(defvar *last-possible-command* "")
+(defun parse-possible-command (command-string)
+  (setf *last-possible-command* command-string)
+  (cl-ppcre:register-groups-bind (nick cmd args) ("^(?:([^:]*): )?(?:,|[sS]hanai, )([^\\s]*) ?(.*)" command-string)
+    (values nick cmd args)))
 
-
+(defun parse-possible-user-alias (string)
+  (cl-ppcre:register-groups-bind (nick rest) ("^([^:]*): (.*)" string)
+    (values nick rest)))
 (defun commandp (con msg-string)
-  (not (not (and (< 0 (length msg-string)) (find #\, msg-string :end 1)))))
+  "True if MSG-STRING is meant to be addressed to the AI bot."
+  (declare (ignore con))
+  (multiple-value-bind (nick cmd args) (parse-possible-command msg-string)
+    (declare (ignore nick args))
+    (not (not cmd))))
+
 (defvar *lastmsg* "")
 (defun parse-nickname-and-message (msg)
   (setq *lastmsg* msg)
@@ -159,26 +283,35 @@ Messages are of the format <message length (2 octets)><message>."
           cmd))
       (cons nil (message msg))))
 
+
 (defvar *last-time* (GET-UNIVERSAL-TIME))
 (defun handle-broken-po-command (message)
   (let ((cmd (cdr (parse-nickname-and-message message))))
     (when (and (or (char= (aref cmd 0) #\/)
                    (char= (aref cmd 0) #\!))
+               (< 1 (length cmd))
                (< (+ 60 *last-time*) (GET-UNIVERSAL-TIME)))
+      
       (setq *last-time* (GET-UNIVERSAL-TIME))
       "Scripts are down. Please try again later. Abusing them may get you kicked.")))
 
 (defmethod handle-event ((con connection) (msg channel-message))
   "Handle a message sent to us somehow :P"
-  (unless (and (< 6 (length (message msg))) (search "Shanai:" (message msg) :start2 0 :end2 7));ignore messages sent from us.
-    (unless (= 0 (length  (message msg)))
-      (let ((wl (handle-wikilinks (message msg)))
-            (scripts-broken (handle-broken-po-command msg)))
-        (cond  (scripts-broken (reply con msg scripts-broken))
-               ((string= "" wl)
-                (handle-msg con msg))
-               (t
-                (reply con msg wl)))))))
+  (multiple-value-bind (nick cmd args) (parse-possible-command (message msg))
+    (cond
+      ((string-equal (parse-possible-user-alias (message msg)) "+CountBot")
+       (reply con (make-instance 'channel-message :channel-id 8
+                                 :message "")  (multiple-value-bind (n m) (parse-possible-user-alias (message msg)) m)  ))
+      (t
+       (unless (string-equal nick "Shanai")
+         (unless (= 0 (length  (message msg)))
+           (let ((wl (handle-wikilinks (message msg)))
+                 (scripts-broken (handle-broken-po-command msg)))
+             (cond  (scripts-broken (reply con msg scripts-broken))
+                    ((string= "" wl)
+                     (handle-msg con msg))
+                    (t
+                     (reply con msg wl))))))))))
 
 (defmethod handle-event ((con connection) (msg private-message))
   "Handle a message sent to us somehow :P"
@@ -190,13 +323,17 @@ Messages are of the format <message length (2 octets)><message>."
 (defmethod handle-event :after ((socket connection) obj)
   (setf *po-socket-recv-log* (cons obj *po-socket-recv-log*)))
 
+(defun get-stream (thing)
+  (typecase thing
+    (stream thing)
+    (usocket:stream-usocket (usocket:socket-stream thing))))
 (defun print-po-raw (socket octet-list)
   (typecase octet-list
     (list (loop for oct in octet-list
-         do (write-byte oct (usocket:socket-stream socket))))
+         do (write-byte oct (get-stream socket))))
     (vector (loop for oct across octet-list
-         do (write-byte oct (usocket:socket-stream socket)))))
-  (force-output (usocket:socket-stream socket)))
+         do (write-byte oct (get-stream socket)))))
+  (force-output (get-stream socket)))
 
 
 (defun po-login-ai (&optional (socket @po-socket@))
@@ -254,26 +391,44 @@ else."
   (decode id (usocket:socket-stream con) :external-format external-format :len len))
 
 (defun read-po-octet-string (stream &key (external-format :utf-16))
+  (setq *temp* (list :rpos))
   (let ((len (read-u4 stream)))
-    (flexi-streams:octets-to-string (loop for i from 1 to len
-                                       collect (read-byte stream))
-                                    :external-format external-format)))
+    (prog1 (flexi-streams:octets-to-string (loop for i from 1 to len
+                                                do       (setq *temp* (list i len))
+                                              collect (read-byte stream))
+                                           :external-format external-format))))
 
-
-(defun po-start-listen-loop (&key (port 5777))
+(defvar *isalpha* nil)
+(defun po-start-listen-loop (&key (port 5777) (host  "nixeagle.org"))
   (bt:make-thread (lambda ()
-                    (let ((*po-socket* (connect "nixeagle.org" port :nickname "AI")))
+                    (let ((*po-socket* (connect host port :nickname "Shanai")))
                       (setf @po-socket@ *po-socket*
-                            *po-socket-recv-log* '())
+                            *po-socket-recv-log* '()
+                            *sock-rcv-log* '())
                       (unwind-protect
-                           (handler-case 
-                               (progn (loop for sock = (usocket:wait-for-input *po-socket*)
-                                         while sock 
-                                         do (handle-po-message sock '()#+ () (read-po-message sock))))
-                             (error (condition) #+ () (print-po-msg *po-socket* (princ-to-string condition))))
+                           
+                           (progn (loop for sock = (usocket:wait-for-input *po-socket*)
+                                     while sock 
+                                     do (handle-po-message sock '()#+ () (read-po-message sock))))
                         (usocket:socket-close *po-socket*))
                       (usocket:socket-close *po-socket*))
                     ) :name "PO Socket loop" :initial-bindings `((*standard-output* . *standard-output*))))
+(defvar @po-alpha-socket@ nil)
+(defun po-start-alpha-listen-loop (&key (port 5777) (host  "nixeagle.org"))
+  (bt:make-thread (lambda ()
+                    (let ((*po-socket* (connect host port :nickname "Shanai"))
+                          (*isalpha* t))
+                      (setf @po-alpha-socket@ *po-socket*)
+                      (let ((*po-socket-recv-log* '()))
+                        (unwind-protect
+                             (handler-case 
+                                 (progn (loop for sock = (usocket:wait-for-input *po-socket*)
+                                           while sock 
+                                           do (handle-po-message sock '()#+ () (read-po-message sock))))
+                               (error (condition) #+ () (print-po-msg *po-socket* (princ-to-string condition))))
+                          (usocket:socket-close *po-socket*)))
+                      (usocket:socket-close *po-socket*))
+                    ) :name "PO alpha Socket loop" :initial-bindings `((*standard-output* . *standard-output*))))
 
 
 (defmethod print-object ((obj packet) s)
@@ -382,17 +537,33 @@ else."
   (reply con msg "Sorry I don't know about that one."))
 
 (defun handle-command% (con msg)
-  (when (commandp con (cdr (parse-nickname-and-message msg)))
-    (let ((cmd (split-at-first #\Space  (cdr (parse-nickname-and-message msg)))))
-      (when cmd
-        (handle-command (intern (string-upcase (subseq (car cmd) 1)) :keyword)
-                        con msg)))))
+  (multiple-value-bind (nick cmd args) (parse-possible-command (message msg))
+    (when cmd
+      (handle-command (intern (string-upcase cmd) :keyword)
+                      con msg))))
 
 
 
 
 (defun @login-test-ai ()
   "Test function to log the AI in and join Shanai"
-  (po-login-ai (progn (po-start-listen-loop) (sleep 3) @po-socket@))
-  (print-po-raw @po-socket@ (encode-join "Shanai"))
-  (print-po-raw @po-socket@ (encode-join "Tournaments")))
+  (po-login-ai (progn (po-start-listen-loop :port 5080 :host "91.121.73.228") (sleep 3) @po-socket@))
+  #+ () (print-po-raw @po-socket@ (encode-join "Shanai"))
+  #+ () (print-po-raw @po-socket@ (encode-join "Tournaments")))
+
+(defun @login-alpha-test-ai ()
+  "Test function to log the AI in and join Shanai"
+  (po-login-ai (progn (po-start-alpha-listen-loop :port 5777 :host "nixeagle.org") (sleep 3) @po-alpha-socket@))
+  (print-po-raw @po-alpha-socket@ (encode-join "Shanai"))
+  #+ () (print-po-raw @po-socket@ (encode-join "Tournaments")))
+
+(defun @debug-login-test-ai ()
+  (po-login-ai (progn (let ((*po-socket* (connect "91.121.73.228" 5080 :nickname "Shanai")))
+                      (setf @po-socket@ *po-socket*
+                            *po-socket-recv-log* '()
+                            *sock-rcv-log* '())
+                      (progn (loop for sock = (usocket:wait-for-input *po-socket*)
+                                         while sock 
+                                         do (handle-po-message sock '()#+ () (read-po-message sock)))))
+                      @po-socket@)))
+

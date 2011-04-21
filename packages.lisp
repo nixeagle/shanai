@@ -32,3 +32,9 @@ Pokemon Online git repository source."))
    (:import-from :alexandria :non-negative-fixnum)
    (:import-from :split-sequence #:split-sequence)
    (:import-from :iterate :iter :for :appending :collecting :generate :generating :next))
+
+
+(defpackage #:shanai.pokemon.type
+  (:use :cl)
+  (:import-from :alexandria #:alist-hash-table)
+  (:export #:typeid))
