@@ -32,14 +32,22 @@
   (cl-who:with-html-output-to-string (*standard-output*)
     (:list
      (loop for p in pokemon.po.client::*sock-rcv-log*
-        when (eql :spectating-battle-message (car p))
-        do (cl-who:htm (:li (princ (nth 1 (cdr p)))
+        when (or (eql :battle-message (car p)) (eql :spectating-battle-message (car p)))
+        do (cl-who:htm (:li (:b (princ (nth 9 (cdr p))))
+                            (princ ": ")
+                            (princ (nth 1 (cdr p)))
                             (princ " -- ")
-                            (princ (nth 3 (cdr p)))
+                            (:b (princ (nth 3 (cdr p))))
                             (princ ":")
                             (princ (nth 5 (cdr p)))
                             (princ " ")
-                            (princ (nth 7 (cdr p))))))))
+                            (:ul
+                             (:ul
+                              (:font :color :grey (princ (nth 7 (cdr p)))))
+                             (:ul
+                              (:font :color (if (eql :battle-message (car p))
+                                                :blue
+                                                :green) (print (nthcdr 11 p))))))))))
 #+ ()  (pprint-to-string (loop 
                        for p in pokemon.po.client::*sock-rcv-log*
                        ;for i from 1 to 200

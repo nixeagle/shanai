@@ -1,4 +1,4 @@
-
+(in-package :pokemon.po.client)
 (deftype u1 ()
   "Shorthand notation for saying `unsigned-byte'."
   '(unsigned-byte 8))
@@ -53,7 +53,8 @@
   (write-u1  out (ldb (byte 8  8) value) )
   (write-u1 out  (ldb (byte 8  0) value) ))
 
-
+(defun read-s1 (in)
+  (pokemon::twos-complement (read-u1 in) 256))
 (defun read-qtstring (in)
   (let ((len (read-u4 in)))
     (when (not (= #xffffffff len))
@@ -85,6 +86,13 @@
 (defvar *po-protocol-handlers*
   (make-array 60 :element-type '(or symbol function)
               :initial-element (lambda (in)
+                                 (declare (ignore in))
+                                 (values nil nil))))
+
+(defvar *po-battle-protocol-handlers*
+  (make-array 60 :element-type '(or symbol function)
+              :initial-element (lambda (in)
+                                 (declare (ignore in))
                                  (values nil nil))))
 
 
@@ -132,6 +140,33 @@
     (multiple-value-bind (string length) (read-qtstring in)
       (values (list :level level :name string)
               (+ 1 length)))))
+
+(defun protocol-handler (id)
+  (aref *po-protocol-handlers* id))
+
+(defun (setf protocol-handler) (value id)
+  (declare (type (or function symbol) value)
+           (type (integer 0 100) id))
+  (setf (aref *po-protocol-handlers* id) value))
+
+(defun battle-protocol-handler (id)
+  (aref *po-battle-protocol-handlers* id))
+
+(defun (setf battle-protocol-handler) (value id)
+  (declare (type (or function symbol) value)
+           (type (integer 0 100) id))
+  (setf (aref *po-battle-protocol-handlers* id) value))
+
+(defun read-player-info (s)
+  (values (list (read-u4 s)
+                (read-qtstring s)
+                (read-qtstring s)
+                (read-u1 s)
+                (cons :flags (read-u1 s))
+                (read-u2 s))
+          :player-info))
+
+
 (defmacro define-po-protocol-reader (name id args &body body)
   "Defines a function to read messages hot off the wire.
 
@@ -148,6 +183,22 @@ names to match channel ids or user names to match user ids and so on."
                  ,id))
        (setf (protocol-handler ,id)
              ',(alexandria:format-symbol t "READ-~A" name)))))
+(defmacro define-po-battle-protocol-reader (name id args &body body)
+  "Defines a function to read messages hot off the wire.
+
+These should not refer to any global state. That is no lookup of channel
+names to match channel ids or user names to match user ids and so on."
+  (multiple-value-bind (bod decl doc)
+      (tcr.parse-declarations-1.0::parse-body body :documentation t)
+    `(progn
+       (defun ,(alexandria:format-symbol t "READ-BATTLE-COMMAND-~A" name) ,args
+         ,doc
+         ,@decl
+         (values (progn ,@bod)
+                 ,(alexandria:make-keyword name)
+                 ,id))
+       (setf (battle-protocol-handler ,id)
+             ',(alexandria:format-symbol t "READ-BATTLE-COMMAND-~A" name)))))
 
 (define-po-protocol-reader what-are-you 0 (in)
   "my documentation string!!!!"
@@ -197,9 +248,28 @@ names to match channel ids or user names to match user ids and so on."
         :outcome (read-battle-outcome in)
         :winner-id (read-u4 in)
         :loser-id  (read-u4 in)))
-(define-po-protocol-reader battle-message 10 (in))
+
+(define-po-protocol-reader battle-message 10 (in)
+  (let* ((id (read-u4 in))
+         (size (read-u4 in))
+         (type (read-u1 in))
+         (spot (read-u1 in))
+         (bytes (loop for b from 3 to size
+                                     collect (read-byte in))))
+    (with-input-from-octet-vector (in2 bytes)
+      (multiple-value-bind (val sub-type sub-id)
+          (funcall (battle-protocol-handler type) in2)
+        (declare (type list val)
+                 (ignore sub-id))
+        (append (list 
+                 :battle-id id
+                 :battle-message-type type
+                 :battle-message-spot spot
+                 :battle-message-bytes bytes
+                 :battle-message-sub-type sub-type)
+                val)))))
 (define-po-protocol-reader battle-chat 11 (in))
-(define-po-protocol-reader keep-alive 12 (in))
+(define-po-protocol-reader keep-alive 12 (in)) ; This is a ping.
 (define-po-protocol-reader ask-for-pass 13 (in)
   "Server tells us we need to send a pass.
 
@@ -252,13 +322,21 @@ or one. 1 = away, 0 = ready for battles."
   (let* ((id (read-u4 in))
          (size (read-u4 in))
          (type (read-u1 in))
-         (spot (read-u1 in)))
-    (list 
-          :battle-id id
-          :battle-message-type type
-          :battle-message-spot spot
-          :battle-message-bytes (loop for b from 3 to size
-                                     collect (read-byte in)))))
+         (spot (read-u1 in))
+         (bytes (loop for b from 3 to size
+                                     collect (read-byte in))))
+    (with-input-from-octet-vector (in2 bytes)
+      (multiple-value-bind (val sub-type sub-id)
+          (funcall (battle-protocol-handler type) in2)
+        (declare (type list val)
+                 (ignore sub-id))
+        (append (list 
+                 :battle-id id
+                 :battle-message-type type
+                 :battle-message-spot spot
+                 :battle-message-bytes bytes
+                 :battle-message-sub-type sub-type)
+                val)))))
 (define-po-protocol-reader spectating-battle-chat 29 (in))
 (define-po-protocol-reader spectating-battle-finished 30 (in))
 (define-po-protocol-reader ladder-change 31 (in))
@@ -334,23 +412,143 @@ Most common usage is for whenever a user does /me."
 (define-po-protocol-reader server-name 55 (in))
 (define-po-protocol-reader special-pass 56 (in))
 
+(define-po-battle-protocol-reader blank-message 28 (in)
+  "Used to indicate to the client to print a blank line."
+  ;; Is there a reason we don't juse use \n like the rest of the world?
+  (declare (ignore in)))
+(define-po-battle-protocol-reader send-out 0 (in)
+  "Sent when a player sends out a pokemon."
+  (list :to-spot (read-u1 in)
+        :from-spot (read-u1 in)
+        :pokemon-id (read-u2 in)
+        :forme-id (read-u1 in)
+        :pokemon-nick (read-qtstring in)
+        :percent-health (read-u1 in)
+        :status-flags (read-u4 in) ; only 10 bytes of this are used...
+        :gender (read-u1 in)
+        :shinyp (= 1 (read-u1 in))
+        :level (read-u1 in)))
+(define-po-battle-protocol-reader send-back 1 (in)
+  "Sent when a player returns a pokemon."
+  (declare (ignore in)))
+(define-po-battle-protocol-reader use-attack 2 (in)
+  (list :move-id (read-u2 in)))
+(define-po-battle-protocol-reader begin-turn 4 (in)
+  "Sent at the start of each turn."
+  (list :turn (read-u4 in)))
+(define-po-battle-protocol-reader change-hp 6 (in)
+  "New value of HP for indicated pokemon"
+  ;;; this might not be right in the case of a double battle instead of
+  ;;; treating the HP as a 16 bit number we might have to treat it as a 8
+  ;;; bit number with the other number meaning to indicate which pokemon on
+  ;;; the player's team is meant to be targeted/changed.
+  (list :hp (read-u2 in)))
 
-(defun protocol-handler (id)
-  (aref *po-protocol-handlers* id))
+(define-po-battle-protocol-reader ko 7 (in)
+  "Sombody's pokemon got knocked out."
+  (declare (ignore in)))
 
-(defun (setf protocol-handler) (value id)
-  (declare (type (or function symbol) value)
-           (type (integer 0 100) id))
-  (setf (aref *po-protocol-handlers* id) value))
+(define-po-battle-protocol-reader effective 8 (in)
+  nil)
+(define-po-battle-protocol-reader missed 9 (in)
+  "Says that the pokemon in SLOT missed."
+  (declare (ignore in)))
 
-(defun read-player-info (s)
-  (values (list (read-u4 s)
-                (read-qtstring s)
-                (read-qtstring s)
-                (read-u1 s)
-                (cons :flags (read-u1 s))
-                (read-u2 s))
-          :player-info))
+
+(define-po-battle-protocol-reader critical-hit 10 (in)
+  "Sent when a pokemon was nailed with a critical hit."
+  (declare (ignore in)))
+(define-po-battle-protocol-reader stat-change 12 (in)
+  (list :stat-index (read-u1 in)
+        :stat-value (read-s1 in)))
+(define-po-battle-protocol-reader status-change 13 (in)
+  "The pokemon in SLOT has it's status flags changed."
+  (list :status-flags (read-u1 in)))
+(define-po-battle-protocol-reader status-message 14 (in)
+  "Somebody had a status effect do something to it.
+
+For example poison damage or paralysis."
+  (list :flags (read-u1 in)))
+(define-po-battle-protocol-reader failed 15 (in)
+  "Move failed."
+  (declare (ignore in)))
+(define-po-battle-protocol-reader battle-chat 16 (in)
+  "Sent when someone speaks in the battle chat."
+  (list :message (read-qtstring in)))
+
+(define-po-battle-protocol-reader move-message 17 (in)
+  "Sent when someone speaks in the battle chat."
+  (list :msg-id (read-u2 in)
+        :??? (read-u2 in)))
+
+(define-po-battle-protocol-reader item-message 18 (in)
+  "Sent when someone speaks in the battle chat."
+  (list :msg-id (read-u2 in)
+        #+ () :??? #+ () (read-u2 in)))
+
+(define-po-battle-protocol-reader weather-message 22 (in)
+  "Some sort of weather effect."
+  ;; Format is confusing stlil. (2 3) and (0 3) for sandstorm. (0 3)
+  ;; happens first than the (2 3) shows up a bunch of times. I'm guessing
+  ;; the (2 3) is something about the sandstorm raging and buffeting each
+  ;; of hte pokemon. But I can't tell how the (0 3) works into that
+  ;; narrative. The 3 is likely the 'weather-id' and stands for when
+  ;; weather is causing some sort of effects.
+  nil)                                
+
+(define-po-battle-protocol-reader straight-damage 23 (in)
+  "Amount of damage an attack has done in percentage points."
+  (list :??? (read-u1 in) ;;; this might be the specific hp count lost...
+        :hp-lost (read-u1 in)))
+(define-po-battle-protocol-reader ability-message 24 (in)
+  "Message saying an ability triggered."
+  (list :??? :???))
+(define-po-battle-protocol-reader abs-status-change 25 (in)
+  "Sent when someone speaks in the battle chat."
+  (list :pokemon-ball-position (read-u1 in)
+        :status-flags (read-u1 in)))
+(define-po-battle-protocol-reader substitute 26 (in)
+  ;; status seems to be a 0 when the substitute fades and a 1 when the
+  ;; substitute is put up. What happens when the substitute takes the
+  ;; damage?
+  (list :substitute-status (read-u1 in)))
+(define-po-battle-protocol-reader battle-end 27 (in)
+  "Sent when someone speaks in the battle chat."
+  nil)
+
+(define-po-battle-protocol-reader dynamic-info 31 (in)
+  "Indicates the current stat modifiers.
+
+Modifiers include attack, defense, sp-attack, sp-def, speed.
+
+There are 3 other slots that are right now unknown as to what they are for,
+but they likely are used to measure spike count among other temporary
+effects." 
+  (list :attack (read-s1 in) :defense (read-s1 in)
+        :special-attack (read-s1 in) :special-defense (read-s1 in)
+        :speed (read-s1 in) :unknown1 (read-s1 in)
+        :unknown2 (read-s1 in) :unknown3 (read-s1 in)))
+(define-po-battle-protocol-reader spectating 33 (in)
+  "Applies for when a spectator joins and or parts."
+  (list :spectator-status (case (read-u1 in)
+                            (0 :part)
+                            (1 :join))
+        :spectator-user-id (read-u4 in)))
+
+(define-po-battle-protocol-reader spectator-chat 34 (in)
+  (list :spectator-user-id (read-u4 in)
+        :message (read-qtstring in)))
+
+(define-po-battle-protocol-reader clock-start 37 (in)
+  (list :remaining-time (read-u2 in)))
+(define-po-battle-protocol-reader clock-stop 38 (in)
+  (list :remaining-time (read-u2 in)))
+
+
+(define-po-battle-protocol-reader rated 39 (in)
+  "Is the battle rated or not?"
+  (list :is-rated (= 1 (read-u1 in))))
+
 
 
 (defun hash-pass (password salt)
@@ -378,20 +576,6 @@ Most common usage is for whenever a user does /me."
 (defun to-ascii (str)
   (declare (type string str))
   (ccl:encode-string-to-octets str :external-format :ascii))
-
-
-(defun google-translate (word from to)
-  (destructuring-bind ((data (translations ((translated . text)))))
-      (with-input-from-string (s 
-                               (let ((drakma:*text-content-types* '(("application" . "json"))))
-                                 (drakma:http-request "https://www.googleapis.com/language/translate/v2"
-                                                      :parameters `(("key" . "AIzaSyAWx_LJDTojLZ0tJEnw2Nn6m-FnnV77KL8")
-                                                                    ("q" . ,word)
-                                                                    ("source" . ,from)
-                                                                    ("target" . ,to))
-                                                      )))
-        (json:decode-json s))
-    text))
 
 
 (defun info-average-of-all-player-info-messages ()
@@ -453,3 +637,135 @@ Most common usage is for whenever a user does /me."
     (integer (write-spectate-battle name (usocket:socket-stream @po-socket@)))
     (string (demo-spectate-battle (nth 1 (car (find-battles-by-user-id (nth 1 (find-user-by-name name)))))))))
 
+
+
+(defun write-idle (idlep stream)        ; Could also be write-away...
+  "When IDLEP indicate to server no battles are wanted."
+  (declare (type boolean idlep))
+  (write-u2 stream 2)
+  (write-u1 stream 21)
+  (write-u1 stream (if idlep 1 0))
+  (force-output stream))
+
+
+(defun write-change-team (name stream &key
+                          (nickname name)
+                          info
+                          lose
+                          win
+                          avatar
+                          default-tier
+                          (generation 5)
+                          )
+  (declare (type string nickname info lose win default-tier)
+           (type (integer 0 500) avatar)
+           (type (integer 1 5) generation))
+  (let ((out-vector (with-output-to-vector (s nil :external-format :utf-16be)
+                      (write-u1 s 6)
+                      (write-qtstring nickname s)
+                      (write-qtstring info s)
+                      (write-qtstring lose s)
+                      (write-qtstring win s)
+                      (write-u2 s avatar)
+                      (write-qtstring default-tier s)
+                      (write-u1 s generation)
+                      (loop for p in (cl-user::test-pkminfo)
+                         do (%write-poke-personal-from-import-list p s)))))
+    (write-u2 stream (length out-vector))
+    (write-sequence out-vector stream)
+    (force-output stream)))
+
+
+(defun %write-poke-personal (pokemon stream
+                             &key (forme 0) (nickname "") (item 0) (ability 0) (nature 0)
+                             (gender 2) (shinyp t) (happiness 255) (level 5)
+                             (move1 0) (move2 0) (move3 0) (move4 0)
+                             (hp-iv 31) (atk-iv 31) (def-iv 31)
+                             (spatk-iv 31) (spdef-iv 31) (speed-iv 31)
+                             (hp 0) (atk 0) (def 0) (satk 0)
+                             (sdef 0) (spd 0))
+  (declare (type string nickname)
+           (type boolean shinyp)
+           (type (integer 0 2) gender)
+           (type (integer 0 31) hp-iv atk-iv def-iv spatk-iv spdef-iv speed-iv)
+           (type (integer 0 1000) item)
+           (type (integer 0 1000) ability)
+           (type (integer 0 16) nature)
+           (type (integer 0 560) move1 move2 move3 move4)
+           (type (integer 0 255) happiness)
+           (type (integer 0 255) hp atk def satk sdef spd)
+           (type (integer 1 100) level)
+           (type (integer 0 649) pokemon)
+           (type (integer 0 30) forme)
+           (type stream stream))
+  (write-u2 stream pokemon)
+  (write-u1 stream forme)
+  (write-qtstring nickname stream)
+  (write-u2 stream item)
+  (write-u2 stream ability)
+  (write-u1 stream nature)
+  (write-u1 stream gender)
+  (write-u1 stream (if shinyp 1 0))
+  (write-u1 stream happiness)
+  (write-u1 stream level)
+  (write-u4 stream move1)
+  (write-u4 stream move2)
+  (write-u4 stream move3)
+  (write-u4 stream move4)
+  (write-u1 stream hp-iv)
+  (write-u1 stream atk-iv)
+  (write-u1 stream def-iv)
+  (write-u1 stream spatk-iv)
+  (write-u1 stream spdef-iv)
+  (write-u1 stream speed-iv)
+  (write-u1 stream hp)
+  (write-u1 stream atk)
+  (write-u1 stream def)
+  (write-u1 stream satk)
+  (write-u1 stream sdef)
+  (write-u1 stream spd))
+
+(defun %write-poke-personal-from-import-list (pokelist out)
+  "Write a pokemon's data from the import list."
+  (destructuring-bind ((poke gender item) trait evlist nature moves) pokelist
+    (let ((moves (loop for move in moves collect (position move pokemon::*movedex*))))
+      (apply #'%write-poke-personal (pokemon::number poke) out
+             :level 5
+             :move1 (first moves)
+             :move2 (if (< 1 (length moves)) (second moves) 0)
+             :move3 (if (< 2 (length moves)) (third moves) 0)
+             :move4 (if (< 3 (length moves)) (fourth  moves) 0)
+             evlist))))
+
+(defun write-challenge-stuff (user stream &key (flags 0) (clauses #x20) (mode 0))
+  (let ((out-vector (with-output-to-vector (s nil :external-format :utf-16be)
+                      (write-u1 s 7)
+                      (write-u1 s flags)
+                      (write-u4 s user)
+                      (write-u4 s clauses)
+                      (write-u1 s mode))))
+    (write-u2 stream (length out-vector))
+    (write-sequence out-vector stream)
+    (force-output stream)))
+
+(defun write-battle-use-attack (battle-id stream &key
+                                attack-slot attack-target)
+  (write-u2 stream 9) ; message size
+  (write-u1 stream 10) ; message type
+  (write-u4 stream battle-id) ; battle id
+  (write-u2 stream 1) ; subtype
+  (write-u1 stream attack-slot)
+  (write-u1 stream attack-target)
+  (force-output stream))
+
+
+
+
+(defun write-battle-switch-pokemon (battle-id stream &key
+                                    pokemon-slot)
+  (write-u2 stream 8) ; message size
+  (write-u1 stream 10) ; message type
+  (write-u4 stream battle-id) ; battle id
+  (write-u2 stream 2) ; subtype
+  (write-u1 stream pokemon-slot)
+  (force-output stream))

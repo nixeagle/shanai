@@ -13,7 +13,8 @@
 (defpackage #:shanai.po.client
   (:import-from :split-sequence #:split-sequence))
 
-(defpackage #:shanai.po.bot)
+(defpackage #:shanai.po.bot
+  (:use :cl :shanai.define-user-command))
 
 (defpackage #:shanai.pokedex
   (:use :cl))
@@ -38,3 +39,7 @@ Pokemon Online git repository source."))
   (:use :cl)
   (:import-from :alexandria #:alist-hash-table)
   (:export #:typeid))
+
+
+(defpackage #:shanai.www
+  (:use :cl))

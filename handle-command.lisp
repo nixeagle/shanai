@@ -1,7 +1,7 @@
 (in-package :pokemon.po.client)
 
 (defmethod handle-command ((cmd (eql :help)) (con connection) (msg message))
-  (reply con msg "ooh look, a <a href=\"http://google.com/\">google</a>!"))
+  nil)
 (defmethod handle-command ((cmd (eql :source)) (con connection) (msg message))
   (reply con msg "I'm licensed under the GNU GPL version 3 or later. Find me on <a href=\"http://github.com/nixeagle/shanai\">github</a>!"))
 (defmethod handle-command ((cmd (eql :forums)) (con connection) (msg message))
@@ -12,13 +12,14 @@
   (reply con msg "<a href=\"http://pokemon-online.eu/forums/showthread.php?1706\">http://pokemon-online.eu/forums/showthread.php?1706</a>"))
 (defmethod handle-command ((cmd (eql :say)) (con connection) (msg message))
   (when (or (string= "nixeagle" (car (parse-nickname-and-message msg)))
-            (string= "zeroality" (car (parse-nickname-and-message msg))))
+            (string= "zeroality" (car (parse-nickname-and-message msg)))
+            (string= "Gilad" (car (parse-nickname-and-message msg))))
     (reply con msg (subseq (message msg)
                            (+ (length ",say") (search ",say " (message msg)))))))
 (defmethod handle-command ((cmd (eql :client)) (con connection) (msg message))
   (reply con msg "Latest client binary can be downloaded at <a href=\"http://pokemon-online.eu/downloads/Client_17.html\">http://pokemon-online.eu/downloads/Client_17.html</a>"))
 (defmethod handle-command ((cmd (eql :pokedex)) (con connection) (msg message))
-  (multiple-value-bind (nick cmd args) (parse-possible-command (message msg))
+  #+ () (multiple-value-bind (nick cmd args) (parse-possible-command (message msg))
     (when cmd
       (let ((int (parse-integer args :junk-allowed t)))
         (if int
@@ -29,17 +30,6 @@
               (reply con msg (if poke (html-escape (princ-to-string poke))
                                  "Could not find it! Did you typo?"))))))))
 
-(defmethod handle-command ((cmd (eql :movedex)) (con connection) (msg message))
-  (multiple-value-bind (nick cmd args) (parse-possible-command (message msg))
-    (declare (ignore nick))
-    (when cmd
-      (let ((int (parse-integer args :junk-allowed t)))
-        (if (and int (< 0 int pokemon::+total-moves+))
-            (reply con msg (move-to-html-string (pokemon::find-move int)))
-            (let ((poke (pokemon::find-move args)))
-              (if poke
-                  (reply con msg (move-to-html-string poke))
-                  (reply con msg "Sorry that move number does not exist!"))))))))
 
 (defmethod handle-command ((cmd (eql :eval)) (con connection) (msg message))
   (let ((cmd (split-at-first #\ (cdr (parse-nickname-and-message msg)))))
@@ -72,35 +62,6 @@
   (cl-who:with-html-output-to-string (s)
     (:pre (cl-who:esc (with-output-to-string (s) (describe object s))))))
 
-(defun move-to-html-string (move)
-  (cl-who:with-html-output-to-string (*standard-output*)
-    (:TABLE :ALIGN :CENTER :CELLPADDING 2 :CELLSPACING 0 :STYLE
-            "border-width:1px; border-style:solid; border-color:#000;"
-            (:THEAD :STYLE "font-weight:bold;"
-                    (:TR :STYLE "background-color:#b0b0b0;"
-                         (:TD :ALIGN :CENTER "Name")
-                         (:TD :ALIGN :CENTER "Type")
-                         (:TD :ALIGN :CENTER "Category")
-                         (:TD :ALIGN :CENTER "Power")
-                         (:TD :ALIGN :CENTER "Acc.")
-                         (:TD :ALIGN :CENTER "PP")
-                         (:TD :ALIGN :CENTER "Priority")
-                         (:TD :ALIGN :CENTER "Range")))
-            (:TBODY :STYLE "font-weight:bold;"
-                    (:TR :STYLE "background-color:#c0c0c0; vertical-align:middle;"
-                         (:TD :ALIGN :CENTER (cl-who:esc (pokemon::name move)))
-                         (:TD :ALIGN :CENTER (:IMG :SRC  (format nil "Themes/Classic/types/type~A.png" (position (alexandria:make-keyword (pokemon::poketype move)) pokemon::+pokemon-types+))))
-                         (:TD :ALIGN :CENTER (cl-who:str (pokemon::damage-class move)))
-                         (:TD :ALIGN :CENTER (cl-who:str (pokemon::power move)))
-                         (:TD :ALIGN :CENTER (cl-who:str (pokemon::accuracy move)))
-                         (:TD :ALIGN :CENTER (cl-who:str (pokemon::pp move)))
-                         (:TD :ALIGN :CENTER (cl-who:str (pokemon::priority move)))
-                         (:TD :ALIGN :CENTER (cl-who:str (pokemon::range move)))))
-            (:TFOOT :STYLE "font-style:italic;"
-                    (:TR :STYLE "background-color:#c2c2c2;"
-                         (:TD :COLSPAN 8 (:STRONG :STYLE "font-style:normal;" "Description ")
-                              (cl-who:esc (pokemon::effect-description move))))))))
-
 (defmethod handle-command ((cmd (eql :test)) (con connection) (msg message))
   (let ((cmd (split-at-first #\ (cdr (parse-nickname-and-message msg)))))
     (when (cdr cmd)
@@ -122,29 +83,6 @@ Format is #foobar"
   ""
   #+ () (with-output-to-string (*standard-output*)
       (cl-ppcre:do-scans (ms me rs re "\\[\\[([^\\]]*)\\]\\]" stg) (princ "<a href=\"http://en.wikipedia.org/wiki/") (princ (hunchentoot:url-encode (subseq stg (aref rs 0) (aref re 0)))) (princ "\">") (princ "en:") (princ (cl-who:escape-string (subseq stg (aref rs 0) (aref re 0)))) (princ "</a>")(write-char #\space))))
-
-
-(defmethod handle-command ((cmd (eql :who)) (con connection) (msg message))
-  (let ((cmd (split-at-first #\ (cdr (parse-nickname-and-message msg)))))
-    (when (or (string= "nixeagle" (car (parse-nickname-and-message msg)))
-              (string= "zeroality" (car (parse-nickname-and-message msg))))
-      (when (cdr cmd)
-        (reply con msg (handle-cl-who-tests (cdr cmd)))))))
-
-
-(defmethod handle-command ((cmd (eql :rawwho)) (con connection) (msg message))
-  (let ((cmd (split-at-first #\ (cdr (parse-nickname-and-message msg)))))
-    (when (or (string= "nixeagle" (car (parse-nickname-and-message msg)))
-              (string= "zeroality" (car (parse-nickname-and-message msg))))
-      (when (cdr cmd)
-        (reply con msg (cl-who:escape-string (handle-cl-who-tests (cdr cmd))))))))
-
-(defun handle-cl-who-tests (string)
-  (handler-case (eval
-                 (let ((*package* (find-package :pokemon.po.client)))
-                   `(cl-who:with-html-output-to-string (*standard-output*)
-                      ,(read-from-string string nil "(:b \"Sorry malformed input. Did you forget a closing paren?\")"))))
-    (error (condition) (princ-to-string condition))))
 
 (defun match-level-and-base-stat (command-string)
   (cl-ppcre:register-groups-bind (a b) ("(\\d+)\\s(\\d+)" command-string)
@@ -297,3 +235,50 @@ Format is #foobar"
     (reply con msg (concatenate 'string "<b>" (html-escape nick) ":</b> " (html-escape (google-translate args "es" "en"))))))
 
 
+
+(in-package :shanai.po.bot)
+(defparameter *bot-commands*
+  (make-hash-table :test #'equalp))
+
+(defun bot-command (name)
+  (declare (type string name))
+  (gethash name *bot-commands*
+           (lambda (con msg nick args)
+             (values con msg nick args))))
+
+(defun (setf bot-command) (value name)
+  (declare (type string name)
+           (type (or function symbol) value))
+  (setf (gethash name *bot-commands*) value))
+
+(defun make-bot-command-key (key)
+  "Convert KEY into a format appropriate for *USER-COMMANDS*."
+  (string-upcase (princ-to-string key)))
+
+
+(defun reply (con target m)
+  (pokemon.po.client::reply con target (princ-to-string m)))
+
+(defmacro define-bot-command (name (con target user args) &body body)
+  `(setf (bot-command (make-bot-command-key ',name))
+         (lambda (,con ,target ,user ,args)
+           (declare (ignorable ,user ,args))
+           (flet ((reply (m)
+                    (reply ,con ,target m)))
+             ,@body))))
+
+
+(define-bot-command help (con tar user args)
+  (reply "ooh look, <a href=\"http://google.com/\">google</a>! To get a list of commands I'll listen to please type <i>,commands</i>"))
+
+(define-bot-command info-nickname (con tar user args)
+  (reply (format nil "I think my name is ~A" (pokemon.po.client::nickname con))))
+
+(define-bot-command info-channels (con tar user args)
+  (reply "Sorry I have no clue!"))
+
+(define-bot-command find-battle (con target user args)
+  (reply "Looking to pick a fight? Best way to get started is clicking that <b>Find Battle</b> button that is directly below where you type text. Try it out!"))
+
+(define-bot-command config (con target user args)
+  (reply "For future use to adjust configuration options."))
