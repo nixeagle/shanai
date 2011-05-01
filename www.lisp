@@ -24,15 +24,21 @@
   (pprint-to-string (loop for i from 1 to 200
                        for p in pokemon.po.client::*sock-rcv-log*
                        collect p)))
-
-
-(hunchentoot:define-easy-handler (show-raw-packet-log
+(defvar *battle-logs*)
+(defun filter-sock-recv-log ()
+  (setf *battle-logs*
+        (loop for p in pokemon.po.client::*sock-rcv-log*
+           when (or (eql :battle-message (car p)) (eql :spectating-battle-message (car p)))
+           collect p)))
+(hunchentoot:define-easy-handler (show-raw-packet-battlelog
                                   :uri "/shanai/POServer/battlelog") ()
-  (setf (hunchentoot:content-type*) "text/html")
+;  (setf (hunchentoot:content-type*) "text/html")
+  (filter-sock-recv-log)
   (cl-who:with-html-output-to-string (*standard-output*)
+    (:h1 "Battle log")
     (:list
-     (loop for p in pokemon.po.client::*sock-rcv-log*
-        when (or (eql :battle-message (car p)) (eql :spectating-battle-message (car p)))
+     (loop for p in *battle-logs*
+          for i from 0 to 1000
         do (cl-who:htm (:li (:b (princ (nth 9 (cdr p))))
                             (princ ": ")
                             (princ (nth 1 (cdr p)))

@@ -33,47 +33,50 @@
                        (parse-moves stream)))))))
 
 (defun test-pkminfo ()
-  (with-input-from-string (s "Axew (M) @ (No Item)
-Trait: Rivalry
-EVs: 252 HP / 96 SAtk / 160 SDef
-Quiet Nature (+SAtk, -Spd)
+  (with-input-from-string (s "Axew (M) @ Potion
+Trait: Mold Breaker
+EVs: 32 HP / 60 Atk / 196 SAtk / 220 Spd
+Naive Nature (+Spd, -SDef)
 - Dragon Pulse
 - Strength
+- Aerial Ace
 
-Golett @ (No Item)
-Trait: Iron Fist
-EVs: 252 HP / 184 Def / 72 SDef
-Bold Nature (+Def, -Atk)
-- Shadow Punch
-- Strength
+Totodile (M) @ Potion
+Trait: Sheer Force
+EVs: 255 Atk / 8 Def / 244 SAtk
+Quiet Nature (+SAtk, -Spd)
+- Water Pledge
+- Aerial Ace
 
-Clefairy (M) @ (No Item)
-Trait: Magic Guard
-EVs: 252 HP / 120 Def / 136 SDef
-Hardy Nature
-- Strength
-
-Electrike (M) @ (No Item)
-Trait: Static
-EVs: 252 SAtk / 252 Spd
-Mild Nature (+SAtk, -Def)
-- Electro Ball
-- Strength
-
-Roggenrola (M) @ (No Item)
-Trait: Sturdy
-EVs: 252 HP / 252 SDef
-Sassy Nature (+SDef, -Spd)
-- Smack Down
-- Strength
-
-Machop (M) @ (No Item)
-Trait: Guts
-EVs: 252 Atk / 252 Spd
+Nincada (M) @ Potion
+Trait: Run Away
+EVs: 188 HP / 236 Atk / 36 Def / 48 Spd
 Adamant Nature (+Atk, -SAtk)
-- Brick Break
+- Aerial Ace
+- Bug Bite
+- Faint Attack
+
+Magnemite @ Potion
+Trait: Sturdy
+EVs: 156 HP / 196 Def / 156 SAtk
+Modest Nature (+SAtk, -Atk)
+- Magnet Bomb
+- Electro Ball
+
+Nosepass (M) @ Potion
+Trait: Sand Force
+EVs: 196 HP / 236 SAtk / 36 SDef / 40 Spd
+Modest Nature (+SAtk, -Atk)
+- Power Gem
 - Strength
-- Smack Down")
+
+Skorupi (M) @ Potion
+Trait: Keen Eye
+EVs: 36 HP / 196 Atk / 40 Def / 236 Spd
+Jolly Nature (+Spd, -SAtk)
+- Aerial Ace
+- Faint Attack
+- Bug Bite")
     (list (multiple-value-list (parse-pokemon-info s))
           (multiple-value-list (parse-pokemon-info s))
           (multiple-value-list (parse-pokemon-info s))

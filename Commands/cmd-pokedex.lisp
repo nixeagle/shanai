@@ -13,4 +13,4 @@
 
 (define-bot-command multiply (con target user args)
   (cl-ppcre:register-groups-bind ((#'parse-integer a b)) ("(\\d+)\\s+(\\d+)" args)
-    (reply (format nil "~A :: <b>STAB:</b> ~A" (* a b) (floor (* a b 1.5))))))
+    (reply (format nil "~A :: <b>STAB:</b> ~A" (* a b) (floor (/ (* a b 3) 2))))))

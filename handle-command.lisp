@@ -34,7 +34,7 @@
 (defmethod handle-command ((cmd (eql :eval)) (con connection) (msg message))
   (let ((cmd (split-at-first #\ (cdr (parse-nickname-and-message msg)))))
     (when (or (string= "nixeagle" (car (parse-nickname-and-message msg)))
-              (string= "zeroality" (car (parse-nickname-and-message msg))))
+              #+ () (string= "zeroality" (car (parse-nickname-and-message msg))))
       (when (cdr cmd)
         (reply con msg (cl-who:with-html-output-to-string (s nil :indent nil)
                          (:code (cl-who:esc (with-output-to-string (s) (pprint
@@ -50,8 +50,9 @@
 
 
 (defun html-escape (input)
-  (cl-who:escape-string input))
+  (ppcre:regex-replace "&#39;" (cl-who:escape-string input) "'"))
 
+(ppcre:regex-replace "&#39;")
 (defun html-escape-string (input)
   "Prepare a string for safe display in a webbrowser."
   (declare (type string input)
@@ -224,10 +225,11 @@ Format is #foobar"
   (reply con msg "Current league members are: Omega(poison), Cannoli(water), Eva(dragon), <i>insert more</i>."))
 
 (defmethod handle-command ((cmd (eql :commands)) (con connection) (msg message))
-  (reply con msg "commands: ,help ,commands ,source ,forums ,tiers ,client ,movedex ,pokedex ,typematchup ,statranges ,tres ,tren"))
+  (reply con msg "commands: ,help ,commands ,source ,forums ,tiers ,client ,movedex ,pokedex ,typematchup ,statranges ,tres ,tren ,vote ,create-poll ,poll-info"))
 
 (defmethod handle-command ((cmd (eql :tres)) (con connection) (msg message))
   (multiple-value-bind (nick cmd args) (parse-possible-command (message msg))
+    (reply con msg (google-translate args "en" "es"))
     (reply con msg (concatenate 'string "<b>" (html-escape nick) ":</b> " (html-escape (google-translate args "en" "es"))))))
 
 (defmethod handle-command ((cmd (eql :tren)) (con connection) (msg message))

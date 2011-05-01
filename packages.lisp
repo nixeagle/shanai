@@ -1,3 +1,50 @@
+(defpackage #:shanai.pokemon
+   (:export :stats
+            #:make-stats
+            #:statp
+            #:stats-hp
+            #:stats-atk
+            #:stats-def
+            #:stats-satk
+            #:stats-sdef
+            #:stats-spd
+
+            :battle-pokemon
+            )
+   (:use :cl)
+#+ ()   (:import-from :eos #:is #:test)
+#+ ()   (:import-from :alexandria :non-negative-fixnum)
+#+ ()   (:import-from :split-sequence #:split-sequence)
+#+ ()   (:import-from :iterate :iter :for :appending :collecting :generate :generating :next))
+(defpackage #:shanai.po.client
+  (:use :cl
+        :binary-data)
+  (:import-from :split-sequence #:split-sequence)
+  (:nicknames :po-client)
+  (:export #:trainer-id
+           #:get-channel
+           #:get-trainer
+           #:channel-id
+           #:channel-name))
+
+(defpackage #:shanai.po.bot.user-warn-patterns
+  (:use :cl)
+  (:export #:whitelisted-username-list
+           #:blacklisted-username-pattern-list
+           #:whitelist-username
+           ))
+
+(defpackage #:shanai.po.bot.vote
+  (:use :cl)
+  (:export #:getpoll
+           #:valid-poll-id-p
+           #:basic-poll-title
+           #:addpoll
+           #:cast-basic-vote
+           #:parse-yes-or-no-p
+           #:tally-poll)
+  (:import-from :shanai.po.client #:trainer-id))
+
 (defpackage #:pokemon
   (:use :cl)
   (:import-from :eos #:is #:test)
@@ -6,13 +53,20 @@
   (:import-from :iterate :iter :for :appending :collecting :generate :generating :next))
 
 (defpackage #:pokemon.po.client
+  (:use :cl :ccl :shanai.pokemon)
   (:import-from :split-sequence #:split-sequence)
   (:import-from :cl-who :str :esc))
 
 
-(defpackage #:shanai.po.client
-  (:import-from :split-sequence #:split-sequence))
 
+
+(defpackage #:shanai.po.protocol
+  (:use :cl :binary-data)
+  (:nicknames :po-proto)
+  (:export #:write-join-channel
+           #:write-leave-channel
+           #:write-channel-message
+           #:write-challenge-stuff))
 (defpackage #:shanai.po.bot
   (:use :cl :shanai.define-user-command))
 
@@ -27,12 +81,7 @@ These files are stored in bin/db/ and containing subdirectories of the
 Pokemon Online git repository source."))
 
 
-(defpackage #:shanai.pokemon
-   (:use :cl)
-   (:import-from :eos #:is #:test)
-   (:import-from :alexandria :non-negative-fixnum)
-   (:import-from :split-sequence #:split-sequence)
-   (:import-from :iterate :iter :for :appending :collecting :generate :generating :next))
+
 
 
 (defpackage #:shanai.pokemon.type
@@ -43,3 +92,20 @@ Pokemon Online git repository source."))
 
 (defpackage #:shanai.www
   (:use :cl))
+
+(defpackage #:shanai.battle
+  (:use :cl :shanai.pokemon)
+  (:export :basic-battle
+           #:battle-challenger
+           #:battle-challenged))
+
+(defpackage #:shanai.team
+  (:use :cl))
+
+(defpackage #:shanai.po.battle
+  (:use :cl :shanai.battle
+        :shanai.pokemon)
+  (:export :battle
+           #:battle-id
+           #:battle-spectators
+           #:battle-spectating-p))

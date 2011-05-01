@@ -1,74 +1,4 @@
 (in-package :pokemon.po.client)
-(deftype u1 ()
-  "Shorthand notation for saying `unsigned-byte'."
-  '(unsigned-byte 8))
-
-(deftype u2 ()
-  "Shorthand notation for 2 `unsigned-byte'."
-  '(unsigned-byte 16))
-
-(deftype u4 ()
-  "Shorthand notation for 4 `unsigned-byte'."
-  '(unsigned-byte 32))
-
-(defun read-u1 (in)
-  "Read a single byte from IN stream."
-  (declare (optimize (speed 3) (debug 0) (safety 0))
-           )
-  (the u1 (read-byte in)))
-
-(defun write-u1 (out value)
-  (declare 
-           (type u1 value))
-  (write-byte value out))
-
-(defun read-u2 (in)
-  "Read a 2 byte unsigned integer."
-
-  (let ((result 0))
-    (declare (type u2 result))
-    (setf (ldb (byte 8 8) result) (read-u1 in)
-          (ldb (byte 8 0) result) (read-u1 in))
-    result))
-
-(defun write-u2 (out value )
-  (declare 
-           (type u2 value))
-  (write-u1 out (ldb (byte 8 8) value))
-  (write-u1 out (ldb (byte 8 0) value)))
-
-(defun read-u4 (in)
- 
-  (let ((result 0))
-    (declare (type u4 result))
-    (setf (ldb (byte 16 16) result) (read-u2 in)
-          (ldb (byte 16 0)  result) (read-u2 in))
-    result))
-
-(defun write-u4 (out value )
-  (declare 
-           (type u4 value))
-  (write-u1 out (ldb (byte 8 24) value) )
-  (write-u1  out (ldb (byte 8 16) value))
-  (write-u1  out (ldb (byte 8  8) value) )
-  (write-u1 out  (ldb (byte 8  0) value) ))
-
-(defun read-s1 (in)
-  (pokemon::twos-complement (read-u1 in) 256))
-(defun read-qtstring (in)
-  (let ((len (read-u4 in)))
-    (when (not (= #xffffffff len))
-      (let ((s (make-string (/ len 2))))
-        (setf (stream-external-format in)
-              (make-external-format :character-encoding :utf-16be))
-        (read-sequence s in)
-        (values s (+ len 4))))))
-
-(defun write-qtstring (value out)
-  (write-u4 out (ccl:string-size-in-octets value :external-format :utf-16be))
-  (setf (stream-external-format out)
-        (make-external-format :character-encoding :utf-16be))
-  (write-string value out))
 
 (defmacro with-input-from-octet-vector ((var list) &rest body)
   (alexandria:once-only ((l list))
@@ -239,10 +169,66 @@ names to match channel ids or user names to match user ids and so on."
         :info-opponent-id (read-u4 in)
         :info-clauses     (read-u4 in)
         :info-mode        (read-u1 in)))
+(defun read-battle-configuration (in)
+  (list :gen (read-u1 in)
+        :mode (read-u1 in)
+        :challenger (read-u4 in)
+        :challenged (read-u4 in)
+        :clauses (read-u4 in)))
+(defun read-poke-battle-data (in)
+  (let ((pnum (read-u2 in))
+        (forme (read-u1 in))
+        (nick (read-qtstring in))
+        (max-hp (read-u2 in)))
+    (make-instance 'shanai.pokemon:battle-pokemon
+                   :id pnum
+                   :forme forme
+                   :nickname nick
+                   :current-hp (read-u2 in)
+                   :gender (read-u1 in)
+                   :shinyp (if (= 1 (read-u1 in)) t nil)
+                   :level (read-u1 in)
+                   :item (read-u2 in)
+                   :ability (read-u2 in)
+                   :happiness (read-u1 in)
+                   :base-stats (make-stats max-hp (read-u2 in) (read-u2 in) (read-u2 in)
+                                           (read-u2 in) (read-u2 in))
+                   :moves (list (read-poke-battle-move in)
+                                (read-poke-battle-move in)
+                                (read-poke-battle-move in)
+                                (read-poke-battle-move in))
+                   :evs (make-stats (read-u4 in) (read-u4 in) (read-u4 in)
+                                    (read-u4 in) (read-u4 in) (read-u4 in))
+                   :ivs (make-stats (read-u4 in) (read-u4 in) (read-u4 in)
+                                    (read-u4 in) (read-u4 in) (read-u4 in)))))
+
+(defun read-poke-battle-move (in)
+  (list :movenum (read-u2 in)
+        :pp (read-u1 in)
+        :max-pp (read-u1 in)))
 (define-po-protocol-reader engage-battle 8 (in)
-  (list :battle-id (read-u4 in)
-        :user-id (read-u4 in)
-        :user-id2 (read-u4 in)))
+  (let* ((battle-id (read-u4 in))
+         (user-id (read-u4 in))
+         (user-id2 (read-u4 in)))
+    (if (or (= 0 user-id)
+            (= 0 user-id2))
+        (append (list :battle-id battle-id
+                      :user-id user-id
+                      :user-id2 user-id2
+                      :me (if (= 0 user-id)
+                              :am-challenger
+                              :am-challenged))
+                (read-battle-configuration in)
+                (list :team (list (read-poke-battle-data in)
+                                  (read-poke-battle-data in)
+                                  (read-poke-battle-data in)
+                                  (read-poke-battle-data in)
+                                  (read-poke-battle-data in)
+                                  (read-poke-battle-data in))))
+        (list :battle-id battle-id
+              :user-id user-id
+              :user-id2 user-id2))))
+
 (define-po-protocol-reader battle-finished 9 (in)
   (list :battle-id (read-u4 in)
         :outcome (read-battle-outcome in)
@@ -409,7 +395,8 @@ The main channel is always id number 0."
 Most common usage is for whenever a user does /me."
   (list :channel-id (read-u4 in)
         :channel-html (read-qtstring in)))
-(define-po-protocol-reader server-name 55 (in))
+(define-po-protocol-reader server-name 55 (in)
+  (read-qtstring in))
 (define-po-protocol-reader special-pass 56 (in))
 
 (define-po-battle-protocol-reader blank-message 28 (in)
@@ -547,8 +534,16 @@ effects."
 
 (define-po-battle-protocol-reader rated 39 (in)
   "Is the battle rated or not?"
-  (list :is-rated (= 1 (read-u1 in))))
+  (list (= 1 (read-u1 in))))
 
+(define-po-battle-protocol-reader tier-section 40 (in)
+  "Is the battle rated or not?"
+  (list (read-qtstring in)))
+
+(define-po-battle-protocol-reader make-your-choice 43 (in)
+  "Sent when it is time for a person to make a move."
+  (declare (ignore in))
+  nil)
 
 
 (defun hash-pass (password salt)
@@ -655,8 +650,7 @@ effects."
                           win
                           avatar
                           default-tier
-                          (generation 5)
-                          )
+                          (generation 5))
   (declare (type string nickname info lose win default-tier)
            (type (integer 0 500) avatar)
            (type (integer 1 5) generation))
@@ -702,6 +696,7 @@ effects."
   (write-u1 stream forme)
   (write-qtstring nickname stream)
   (write-u2 stream item)
+  (print ability)
   (write-u2 stream ability)
   (write-u1 stream nature)
   (write-u1 stream gender)
@@ -725,16 +720,30 @@ effects."
   (write-u1 stream sdef)
   (write-u1 stream spd))
 
+(defun %locate-trait-position-hack (trait-string)
+  (cond ((string= "Own Tempo" trait-string) 20)
+        ((string= "Mold Breaker" trait-string) 104)
+        ((string= "Klutz" trait-string) 103)
+        ((string= "Magic Guard" trait-string) 98)
+        ((string= "Sturdy" trait-string) 5)
+        ((string= "Sheer Force" trait-string) 125)
+        ((string= "Sand Force" trait-string) 159)
+        ((string= "Guts" trait-string) 62)
+        ((string= "Run Away" trait-string) 50)
+        ((string= "Keen Eye" trait-string) 51)
+        ((string= "Pickup" trait-string) 53)))
 (defun %write-poke-personal-from-import-list (pokelist out)
   "Write a pokemon's data from the import list."
   (destructuring-bind ((poke gender item) trait evlist nature moves) pokelist
     (let ((moves (loop for move in moves collect (position move pokemon::*movedex*))))
+      (print (%locate-trait-position-hack trait))
       (apply #'%write-poke-personal (pokemon::number poke) out
              :level 5
              :move1 (first moves)
              :move2 (if (< 1 (length moves)) (second moves) 0)
              :move3 (if (< 2 (length moves)) (third moves) 0)
              :move4 (if (< 3 (length moves)) (fourth  moves) 0)
+             :ability (%locate-trait-position-hack trait)
              evlist))))
 
 (defun write-challenge-stuff (user stream &key (flags 0) (clauses #x20) (mode 0))
@@ -748,12 +757,18 @@ effects."
     (write-sequence out-vector stream)
     (force-output stream)))
 
+(defun demo-beta-challenge (user)
+  (write-challenge-stuff (shanai.po.client::trainer-id
+                          (shanai.po.client::get-trainer user @po-socket@))
+                         (get-stream @po-socket@)))
+
 (defun write-battle-use-attack (battle-id stream &key
                                 attack-slot attack-target)
   (write-u2 stream 9) ; message size
   (write-u1 stream 10) ; message type
   (write-u4 stream battle-id) ; battle id
-  (write-u2 stream 1) ; subtype
+  (write-u1 stream 0) ; player slot
+  (write-u1 stream 1) ; subtype
   (write-u1 stream attack-slot)
   (write-u1 stream attack-target)
   (force-output stream))
@@ -766,6 +781,32 @@ effects."
   (write-u2 stream 8) ; message size
   (write-u1 stream 10) ; message type
   (write-u4 stream battle-id) ; battle id
-  (write-u2 stream 2) ; subtype
+  (write-u1 stream 0) ; player slot...
+  (write-u1 stream 2) ; subtype
   (write-u1 stream pokemon-slot)
+  (force-output stream))
+
+
+(defun write-show-team (showp stream)   ; 32
+  (write-u2 stream 2)
+  (write-u1 stream 32)
+  (write-u1 stream (if showp 1 0))
+  (force-output stream))
+
+(defun write-ladder-change (ladderp stream)   ; 32
+  (write-u2 stream 2)
+  (write-u1 stream 31)
+  (write-u1 stream (if ladderp 1 0))
+  (force-output stream))
+
+(defun write-find-battle (value stream &key ratedp (same-tier-p t) rangedp (range 0) (mode 0))
+  (write-u2 stream 8)
+  (write-u1 stream 36)
+  (let ((result 0))
+    (setf (ldb (byte 1 0) result) (if ratedp 1 0)
+          (ldb (byte 1 1) result) (if same-tier-p 1 0)
+          (ldb (byte 1 2) result) (if rangedp 1 0))
+    (write-u4 stream result))
+  (write-u2 stream range)
+  (write-u1 stream mode)
   (force-output stream))

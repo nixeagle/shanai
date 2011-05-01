@@ -35,7 +35,7 @@
 
 (define-bot-command movedex (con target user args)
   (or (ppcre:register-groups-bind ((#'parse-integer move-id) move-name)
-          ("^(?:(\\d+)|([a-zA-Z\\s]+))$" args)
+          ("^(?:(\\d+)|([a-zA-Z\\s-]+))$" args)
         (let ((move (pokemon::find-move (or move-id move-name))))
           (cond
             ((and move-name (not move))

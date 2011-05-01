@@ -3,7 +3,10 @@
 (in-package :pokemon)
 
 (eos:def-suite :pokemon)
+(defvar *po-directory* "C:/cygwin/home/Tim/repos/pogeymon-online/"
+  "Full path to where Pokemon Online source/installation is.
 
+Make sure your file path ends with a trailing slash!")
 
 
 
@@ -504,12 +507,8 @@ Order is important!")
 (defmethod print-object ((obj pokemon) stream)
   (print-unreadable-object (obj stream :type t)
     (let ((stats (base-stats obj)))
-      (format stream "~A HP: ~A ATK: ~A DEF: ~A SP-ATK ~A SP-DEF ~A SPD ~A"
+      (format stream "~A ~A/~A/~A/~A/~A/~A"
               (name obj) (hp stats) (attack stats) (defense stats)
               (special-attack stats) (special-defense stats)
               (speed stats)))))
 
-(defvar *po-directory* "C:/cygwin/home/Tim/repos/pogeymon-online/"
-  "Full path to where Pokemon Online source/installation is.
-
-Make sure your file path ends with a trailing slash!")
