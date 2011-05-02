@@ -26,11 +26,7 @@
                                  (values nil nil))))
 
 
-(defun read-server-version (in)
-  (values (read-qtstring in) :server-version))
 
-(defun read-server-name (in)
-  (values (read-qtstring in) :server-name))
 
 (defun read-server-announcement (in)
   (values (read-qtstring in) :server-announcement))
@@ -130,10 +126,7 @@ names to match channel ids or user names to match user ids and so on."
        (setf (battle-protocol-handler ,id)
              ',(alexandria:format-symbol t "READ-BATTLE-COMMAND-~A" name)))))
 
-(define-po-protocol-reader what-are-you 0 (in)
-  "my documentation string!!!!"
-  1
-  "whatareyou!"  )
+(define-po-protocol-reader what-are-you 0 (in))
 
 (define-po-protocol-reader who-are-you 1 (in))
 
@@ -650,7 +643,8 @@ effects."
                           win
                           avatar
                           default-tier
-                          (generation 5))
+                          (generation 5)
+                          (pkminfo (cl-user::test-pkminfo)))
   (declare (type string nickname info lose win default-tier)
            (type (integer 0 500) avatar)
            (type (integer 1 5) generation))
@@ -663,7 +657,7 @@ effects."
                       (write-u2 s avatar)
                       (write-qtstring default-tier s)
                       (write-u1 s generation)
-                      (loop for p in (cl-user::test-pkminfo)
+                      (loop for p in pkminfo
                          do (%write-poke-personal-from-import-list p s)))))
     (write-u2 stream (length out-vector))
     (write-sequence out-vector stream)
@@ -723,13 +717,19 @@ effects."
 (defun %locate-trait-position-hack (trait-string)
   (cond ((string= "Own Tempo" trait-string) 20)
         ((string= "Mold Breaker" trait-string) 104)
+        ((string= "Unnerve" trait-string) 127)
         ((string= "Klutz" trait-string) 103)
+        ((string= "Snow Cloak" trait-string) 81)
+        ((string= "Compoundeyes" trait-string) 14)
+        ((string= "Limber" trait-string) 7)
+        ((string= "Honey Gather" trait-string) 118)
         ((string= "Magic Guard" trait-string) 98)
         ((string= "Sturdy" trait-string) 5)
         ((string= "Sheer Force" trait-string) 125)
         ((string= "Sand Force" trait-string) 159)
         ((string= "Guts" trait-string) 62)
         ((string= "Run Away" trait-string) 50)
+        ((string= "Anticipation" trait-string) 107)
         ((string= "Keen Eye" trait-string) 51)
         ((string= "Pickup" trait-string) 53)))
 (defun %write-poke-personal-from-import-list (pokelist out)
@@ -771,19 +771,6 @@ effects."
   (write-u1 stream 1) ; subtype
   (write-u1 stream attack-slot)
   (write-u1 stream attack-target)
-  (force-output stream))
-
-
-
-
-(defun write-battle-switch-pokemon (battle-id stream &key
-                                    pokemon-slot)
-  (write-u2 stream 8) ; message size
-  (write-u1 stream 10) ; message type
-  (write-u4 stream battle-id) ; battle id
-  (write-u1 stream 0) ; player slot...
-  (write-u1 stream 2) ; subtype
-  (write-u1 stream pokemon-slot)
   (force-output stream))
 
 

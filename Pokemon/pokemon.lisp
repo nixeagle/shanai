@@ -440,20 +440,6 @@ at one time."))
   (make-instance 'battle :players (list (make-instance 'player :name "AI" :team (list (create-battle-pokemon 5 (battle-stats 21 9 6 10 8 12) 50)))
                                         (make-ai-player :name "AI-OPP"))))
 
-(defparameter *battle* nil
-  "Current 'battle', use let bindings with this, not setf.")
-
-(defparameter *last-battle* nil
-  ;; For testing purposes only.
-  "Ok to use setf with this, for the prior simulated battle.")
-
-(defun main ()
-  "Calling this 'main' for lack of a better idea."
-  (let ((*battle* (make-test-battle)))
-    (setf *last-battle* *battle*)
-  ))
-
-
 (defmethod player1 ((obj battle))
   "First player of 2 in a pokemon battle."
   (first (players obj)))

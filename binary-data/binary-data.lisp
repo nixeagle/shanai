@@ -97,7 +97,8 @@
         (values s (+ len 4))))))
 
 (defun write-qtstring (value out)
-  (write-u4 (ccl:string-size-in-octets value :external-format :utf-16be) out)
+  (let ((size (and value (ccl:string-size-in-octets value :external-format :utf-16be))))
+    (write-u4 (or size 0)  out))
   (setf (stream-external-format out)
         (ccl:make-external-format :character-encoding :utf-16be))
   (write-string value out))

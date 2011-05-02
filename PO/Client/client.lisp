@@ -1,5 +1,7 @@
 (in-package :shanai.po.protocol)
 
+
+
 (defmacro with-forced-output (stream &body body)
   `(progn ,@body (force-output ,stream)))
 
@@ -44,12 +46,15 @@
   (write-u1 mode stream))
 
 
-
-
-
-
-
-
+(defun write-battle-switch-pokemon (battle-id stream &key
+                                    pokemon-slot)
+  (write-u2 8 stream) ; message size
+  (write-u1 10 stream) ; message type
+  (write-u4 battle-id stream) ; battle id
+  (write-u1 0 stream) ; player slot...
+  (write-u1 2 stream) ; subtype
+  (write-u1 pokemon-slot stream)
+  (force-output stream))
 
 
 
@@ -61,69 +66,15 @@
 
 (in-package :shanai.po.client)
 
-(defclass trainer ()
-  ((id :initarg :id :reader trainer-id)
-   (name :initarg :name :reader trainer-name)
-   (info :initarg :info)
-   (flags :initarg :flags)
-   (auth :initarg :auth :reader trainer-server-auth)
-   (rating :initarg :rating)
-   (pokemon :initarg :pokemon :accessor trainer-pokemon)
-   (avatar :initarg :avatar)
-   (tier :initarg :tier)
-   (color :initarg :color)
-   (gen :initarg :gen)
-   (losing-msg :initarg :losing-msg)
-   (winning-msg :initarg :winning-msg)))
-
-(defmethod print-object ((obj trainer) out)
-  (print-unreadable-object (obj out :type t)
-    (with-slots (id name info auth rating tier gen) obj
-      (format out "#~A ~A has a rating of ~A on the generation ~A ~A tier. Has auth level ~A and says '~A'."
-              id name rating gen tier auth info))))
-(defun trainers (connection)
-  (pokemon.po.client::trainers connection))
-
-(defun get-trainer (name connection)
-  #+ () (declare (type string name))
-  (gethash name (trainers connection)))
-
-(defun (setf get-trainer) (value connection)
-  (declare            (type trainer value))
-#+ ()  (assert (string= name (slot-value value 'name)))
-  (setf (gethash (slot-value value 'name) (trainers connection)) value
-        (gethash (slot-value value 'id) (trainers connection)) value))
-
-(flet ((trainer-arglist (list)
-         (list :id (nth 1 list)
-                 :name (nth 3 list)
-                 :info (nth 5 list)
-                 :auth (nth 7 list)
-                 :flags (nth 9 list)
-                 :rating (nth 11 list)
-                 :pokemon (nth 13 list)
-                 :avatar (nth 15 list)
-                 :tier (nth 17 list)
-                 :color (nth 19 list)
-                 :gen (nth 21 list))))
-  (defun make-trainer-from-packet-list (list)
-    (apply #'make-instance 'trainer
-           (trainer-arglist list)))
-  (defun reinitialize-trainer-from-packet-list (trainer list)
-    (apply 'reinitialize-instance trainer (trainer-arglist list))))
-
-(defun handle-add-trainer-to-trainers (connection trainers-list)
-  (setf (get-trainer connection) (make-trainer-from-packet-list trainers-list)))
-
-(defun handle-player-send-team (connection trainers-list)
-  (setf (get-trainer connection) (reinitialize-trainer-from-packet-list  trainers-list)))
-
-
 ;;;; channel
 (defclass channel ()
   ((id :initarg :id :reader channel-id)
    (name :initarg :name :reader channel-name)))
 
+(defmethod generic:object-id ((chan channel))
+  (slot-value chan 'id))
+(defmethod generic:name ((chan channel))
+  (slot-value chan 'name))
 
 (defun get-channel (ref connection)
   (gethash ref (pokemon.po.client::channels connection)))
@@ -137,6 +88,9 @@
 (defun shanai-channel-id ()
   (po-client:channel-id (po-client:get-channel "Shanai" pokemon.po.client::@po-socket@)))
 
+(defun shanai-user-id (con)
+  "Get my user-id"
+  (trainer-id (get-trainer "Shanai" con)))
 (defun  get-stream (thing)
   (pokemon.po.client::get-stream thing))
 (defun dprint (con &rest args)
@@ -156,11 +110,19 @@
     #+ () (pokemon.po.client::write-battle-switch-pokemon (shanai.po.battle:battle-id battle)
                                                     (get-stream con)
                                                     :pokemon-slot (get-random-possible-poke-hack)) ))
+
+(defun handle-battle-finished (con value)
+  (when (or (= (getf value :winner-id)
+               (shanai-user-id con))
+            (= (getf value :loser-id)
+               (shanai-user-id con)))
+    (setq shanai.po.bot::*am-i-currently-battling-p* nil)))
 (defun handle-battle-event (con value type id)
   (declare (ignore id))
   (case type
     (:begin-turn (setq *choice-made* nil))
     (:send-out (handle-sendout con *current-battle* value))
+    (:battle-end (setq shanai.po.bot::*am-i-currently-battling-p* nil))
     (:tier-section 
      (reinitialize-instance *current-battle*
                             :tier (nth 10 value)))
@@ -188,23 +150,27 @@
 (defun handle-battle-choice (con battle spot)
   (if *koedp*
       (progn (setq *koedp* nil)
-             (alexandria:deletef *possible-pokes* *depolyed-poke-slot*)
+
              (let ((deploypoke (get-random-possible-poke-hack)))
-               
+               (alexandria:deletef *possible-pokes* deploypoke)               
                (setq *depolyed-poke-slot* deploypoke)
-               (pokemon.po.client::write-battle-switch-pokemon (shanai.po.battle:battle-id battle)
+               (po-proto::write-battle-switch-pokemon (shanai.po.battle:battle-id battle)
                                                                (get-stream con)
                                                                :pokemon-slot deploypoke)))
-      (if *i-wanna-switch-p*
+      (if (and *possible-pokes* *i-wanna-switch-p*)
           (progn
             (let ((r (get-random-possible-poke-hack)))
-              (dprint con "~A" r)
-              (setq *i-wanna-switch-p* nil)
-              (alexandria:appendf *possible-pokes* (list *depolyed-poke-slot*))
-              (alexandria:deletef *possible-pokes* r)
-              (pokemon.po.client::write-battle-switch-pokemon (shanai.po.battle:battle-id battle)
-                                                              (get-stream con)
-                                                              :pokemon-slot r)))
+              #+ () (dprint con "~A I think usable slots are ~A" r *possible-pokes*)
+              (if (= r *depolyed-poke-slot*)
+                   (pokemon.po.client::write-battle-use-attack
+                    (shanai.po.battle:battle-id battle) (get-stream con)
+                    :attack-slot 1
+                    :attack-target (get-opponent-battle-slot-id battle con))
+                   (progn (setq *i-wanna-switch-p* nil)
+                          (setq *depolyed-poke-slot* r)
+                          (pokemon.po.client::write-battle-switch-pokemon (shanai.po.battle:battle-id battle)
+                                                                          (get-stream con)
+                                                                          :pokemon-slot r)))))
           (pokemon.po.client::write-battle-use-attack
            (shanai.po.battle:battle-id battle) (get-stream con)
            :attack-slot 0
@@ -213,7 +179,7 @@
   (declare (ignore battle))             ; Right now just hacking this!
   *current-poke-slot*)
 (defun handle-battle-ko (con battle spot-id)
-  (dprint con "Something in spot ~A got KOd in battle: ~A" spot-id battle)
+#+ ()  (dprint con "Something in spot ~A got KOd in battle: ~A" spot-id battle)
   (when (= spot-id (get-opponent-battle-slot-id battle con))
     #+ () (alexandria:deletef *possible-pokes* *depolyed-poke-slot*)
     (setq *koedp* t)))
@@ -230,7 +196,7 @@
               *koedp* nil
               *depolyed-poke-slot* 0
               *i-wanna-switch-p* nil
-              *possible-pokes* (list 0 1 2 3 4 5))
+              *possible-pokes* (list 1 2 3 4 5))
         (setq *current-poke-slot* 0)
         (setq *current-battle*
               (make-instance 'shanai.po.battle:battle

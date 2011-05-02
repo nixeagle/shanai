@@ -1,36 +1,22 @@
 (in-package :pokemon.po.client)
-(defvar *po-socket* nil
-  "Global dynamic variable for holding pokemon online sockets.
-
-Local to each thread that is created.")
-
-(defvar *po-socket-recv-log* nil
-  "Continuing log of all recieved messages from all PO servers.")
-(defvar @po-socket@ nil
-  "Contains a pointer to the last created pokemon online socket.")
-
-(defvar *pingcount* 0)
-(defvar *temp* nil)
-(defparameter +PO-shanai-id+ 6)
-(defparameter +PO-shanaindigo-id+ 7)
-
-(defclass connection (usocket:stream-usocket)
-  ((nickname :initarg :nickname :reader nickname)
-   (channels :initarg :channels :accessor channels
-             :initform (make-hash-table :test #'equalp))
-   (battles :initarg :battles :accessor battles)
-   (trainers :initarg :trainers :accessor trainers
-             :initform (make-hash-table :test #'equalp))))
 
 (defclass message ()
   ((message :initarg :message :reader message :type 'string)
    (id :type '(unsigned-byte 32))))
+
+(defmethod generic:object-id ((chan-msg message))
+  "Returns u4 value for server's identifier of MESSAGE.
+
+For a channel this is the channel's identifier. For a private message this
+is the user's identifier."
+  (slot-value chan-msg 'id))
 
 (defclass channel-message (message)
   ((id :initarg :channel-id :reader channel-id)))
 
 (defclass private-message (message)
   ((id :initarg :user-id :reader user-id)))
+
 
 (defclass server-version ()
   ((version :initarg :version :reader version :type 'string)))
@@ -154,6 +140,8 @@ Messages are of the format <message length (2 octets)><message>."
   (log-packet value type id)
   
   (case type
+    (:battle-finished (shanai.po.client::handle-battle-finished socket value))
+    (:challenge-stuff (progn (setq shanai.po.bot::*am-i-currently-battling-p* nil)))
     (:engage-battle (shanai.po.client::handle-engage-battle socket value)
      #+ () (write-channel-message (princ-to-string value) (usocket:socket-stream socket)
                                   :id (shanai.po.client::shanai-channel-id)))
@@ -337,10 +325,7 @@ Messages are of the format <message length (2 octets)><message>."
 (defmethod handle-event :after ((socket connection) obj)
   (setf *po-socket-recv-log* (cons obj *po-socket-recv-log*)))
 
-(defun get-stream (thing)
-  (typecase thing
-    (stream thing)
-    (usocket:stream-usocket (usocket:socket-stream thing))))
+
 (defun print-po-raw (socket octet-list)
   (typecase octet-list
     (list (loop for oct in octet-list
@@ -581,3 +566,13 @@ else."
                                          do (handle-po-message sock '()#+ () (read-po-message sock)))))
                       @po-socket@)))
 
+
+
+(defun random-change-team (con)
+  (write-change-team "Shanai" (usocket:socket-stream con)
+                     :nickname "Shanai" :info "A pokemon battle bot."
+                     :lose ""
+                     :win ""
+                     :avatar 249
+                     :default-tier "Shanai Cup"
+                     :pkminfo (cl-user::random-pkminfo)))

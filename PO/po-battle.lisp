@@ -9,6 +9,8 @@
                 :documentation "True when we are spectating a battle, not
                 participating in it.")))
 
+(defmethod generic:object-id ((battle battle))
+  (slot-value battle 'id))
 (defun get-client-battle-slot-id (battle con)
   "Required for messaging the PO server.
 

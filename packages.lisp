@@ -1,21 +1,36 @@
-(defpackage #:shanai.pokemon
-   (:export :stats
-            #:make-stats
-            #:statp
-            #:stats-hp
-            #:stats-atk
-            #:stats-def
-            #:stats-satk
-            #:stats-sdef
-            #:stats-spd
+(defpackage #:shanai.generic
+  (:use :cl)
+  (:nicknames :generic)
+  (:documentation "Supplies generic functions used in the whole project.
 
-            :battle-pokemon
-            )
-   (:use :cl)
-#+ ()   (:import-from :eos #:is #:test)
-#+ ()   (:import-from :alexandria :non-negative-fixnum)
-#+ ()   (:import-from :split-sequence #:split-sequence)
-#+ ()   (:import-from :iterate :iter :for :appending :collecting :generate :generating :next))
+These functions all must be implemented by various other packages.")
+  (:export #:name
+           #:object-id
+           #:challenger
+           #:challenged
+           #:tier
+           #:gen
+           #:type1
+           #:type2))
+
+(defpackage #:shanai.pokemon
+  (:export :stats
+           #:make-stats
+           #:statp
+           #:stats-hp
+           #:stats-atk
+           #:stats-def
+           #:stats-satk
+           #:stats-sdef
+           #:stats-spd
+
+           :battle-pokemon
+           )
+  (:use :cl)
+  #+ ()   (:import-from :eos #:is #:test)
+  #+ ()   (:import-from :alexandria :non-negative-fixnum)
+  #+ ()   (:import-from :split-sequence #:split-sequence)
+  #+ ()   (:import-from :iterate :iter :for :appending :collecting :generate :generating :next))
 (defpackage #:shanai.po.client
   (:use :cl
         :binary-data)
@@ -68,7 +83,7 @@
            #:write-channel-message
            #:write-challenge-stuff))
 (defpackage #:shanai.po.bot
-  (:use :cl :shanai.define-user-command))
+  (:use :cl :shanai.define-user-command :shanai.generic))
 
 (defpackage #:shanai.pokedex
   (:use :cl))
