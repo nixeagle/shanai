@@ -40,6 +40,7 @@
                          (:code (cl-who:esc (with-output-to-string (s) (pprint
                                                                         (handler-case (eval (let ((*package* (find-package :pokemon.po.client))) (read-from-string (cdr cmd) nil "Sorry malformed input. Did you forget a closing paren?"))) (error (condition) condition)) s))))))))))
 
+
 (defmethod handle-command ((cmd (eql :describe)) (con connection) (msg message))
   (let ((cmd (split-at-first #\ (cdr (parse-nickname-and-message msg)))))
     (when (or (string= "nixeagle" (car (parse-nickname-and-message msg)))
@@ -52,7 +53,7 @@
 (defun html-escape (input)
   (ppcre:regex-replace "&#39;" (cl-who:escape-string input) "'"))
 
-(ppcre:regex-replace "&#39;")
+
 (defun html-escape-string (input)
   "Prepare a string for safe display in a webbrowser."
   (declare (type string input)
@@ -60,8 +61,10 @@
   (cl-who:escape-string input))
 
 (defun describe-to-html-string (object)
-  (cl-who:with-html-output-to-string (s)
-    (:pre (cl-who:esc (with-output-to-string (s) (describe object s))))))
+  (let ((*print-right-margin* 70)
+        (*print-string-length* 20))
+    (cl-who:with-html-output-to-string (s)      
+      (:pre (cl-who:esc (with-output-to-string (s) (describe object s)))))))
 
 (defmethod handle-command ((cmd (eql :test)) (con connection) (msg message))
   (let ((cmd (split-at-first #\ (cdr (parse-nickname-and-message msg)))))
@@ -118,19 +121,22 @@ Format is #foobar"
   (let ((cmd (split-at-first #\ (cdr (parse-nickname-and-message msg)))))
     (multiple-value-bind (lvl basestats) (match-level-and-base-stat (cdr cmd))
       (when (and lvl basestats)
-        (reply con msg (handle-ev-iv-chart (other-formula-intervals lvl basestats)))))))
+        (reply con msg (handle-ev-iv-chart (other-formula-intervals lvl basestats) lvl))))))
 
 (defun find-pokemon-by-name (term)
   (loop for val being the hash-value of pokemon::*pokedex*
      when (string-equal (pokemon::name val) term) return val))
 (defmethod handle-command ((cmd (eql :scripts)) (con connection) (msg message))
   (reply con msg "<a href=\"http://pokemon-online.eu/scripts.js\">PO Beta server Scripts.js</a>"))
-(defun handle-ev-iv-chart (array)
+
+
+(defun handle-ev-iv-chart (array lvl)
+  (declare (type integer lvl))
   (cl-who:with-html-output-to-string (*standard-output*)
     (:table :align :center :cellpadding 2 :cellspacing 0 :style"border-width:1px; border-style:solid; border-color:#000;"
             (:thead :style"font-weight:bold;"
                     (:tr :style"background-color:#b0b0b0;"
-                         (:td :align :center "--")
+                         (:td :align :center (cl-who:fmt "Lvl ~A" lvl))
                          (:td :align :center "Negative")
                          (:td :align :center "Neutral")
                          (:td :align :center "Positive")))
@@ -225,7 +231,7 @@ Format is #foobar"
   (reply con msg "Current league members are: Omega(poison), Cannoli(water), Eva(dragon), <i>insert more</i>."))
 
 (defmethod handle-command ((cmd (eql :commands)) (con connection) (msg message))
-  (reply con msg "commands: ,help ,commands ,source ,forums ,tiers ,client ,movedex ,pokedex ,typematchup ,statranges ,tres ,tren ,vote ,create-poll ,poll-info"))
+  (reply con msg "commands: ,help ,commands ,source ,forums ,tiers ,client ,movedex ,pokedex ,typematchup ,statranges ,tres ,tren ,vote ,create-poll ,poll-info ,challenge-me ,shanai-cup"))
 
 (defmethod handle-command ((cmd (eql :tres)) (con connection) (msg message))
   (multiple-value-bind (nick cmd args) (parse-possible-command (message msg))

@@ -85,18 +85,18 @@
   "Hold the single battle that the AI is participating or spectating in.")
 ;;; handling battle stuff here for now
 
-(defun shanai-channel-id ()
-  (po-client:channel-id (po-client:get-channel "Shanai" pokemon.po.client::@po-socket@)))
+(defun shanai-channel-id (&optional (con pokemon.po.client::@po-socket@))
+  (po-client:channel-id (po-client:get-channel "Shanai" con)))
 
 (defun shanai-user-id (con)
   "Get my user-id"
-  (trainer-id (get-trainer "Shanai" con)))
+  (and (get-trainer "Shanai" con) (trainer-id (get-trainer "Shanai" con))))
 (defun  get-stream (thing)
   (pokemon.po.client::get-stream thing))
 (defun dprint (con &rest args)
   (let ((cs (get-stream con)))
     (po-proto:write-channel-message (cl-who:escape-string (apply #'format nil args))
-                                    cs :channel-id (shanai-channel-id))
+                                    cs :channel-id (shanai-channel-id con))
     (force-output cs)))
 (defun get-my-battle-slot-id (battle con)
   (shanai.po.battle::get-client-battle-slot-id battle con))
@@ -112,15 +112,23 @@
                                                     :pokemon-slot (get-random-possible-poke-hack)) ))
 
 (defun handle-battle-finished (con value)
-  (when (or (= (getf value :winner-id)
-               (shanai-user-id con))
-            (= (getf value :loser-id)
-               (shanai-user-id con)))
+  (when (and (shanai-user-id con)
+             (or (= (getf value :winner-id)
+                    (shanai-user-id con))
+                 (= (getf value :loser-id)
+                    (shanai-user-id con))))
     (setq shanai.po.bot::*am-i-currently-battling-p* nil)))
+(defun handle-battle-player-list (con value)
+  (when shanai.po.bot::*am-i-currently-battling-p*
+    (when (equal (generic:object-id shanai.po.bot::*current-challenger*)
+                 (generic:object-id (get-trainer (nth 1 value) con)))
+      (unless (string= "Shanai Cup" (generic:tier (get-trainer (nth 1 value) con)))
+        (setq shanai.po.bot::*am-i-currently-battling-p* nil)))))
 (defun handle-battle-event (con value type id)
   (declare (ignore id))
   (case type
-    (:begin-turn (setq *choice-made* nil))
+    (:begin-turn (setq *choice-made* nil)
+                 (shanai.battle::!incf-turn *current-battle*))
     (:send-out (handle-sendout con *current-battle* value))
     (:battle-end (setq shanai.po.bot::*am-i-currently-battling-p* nil))
     (:tier-section 
@@ -168,7 +176,7 @@
                     :attack-target (get-opponent-battle-slot-id battle con))
                    (progn (setq *i-wanna-switch-p* nil)
                           (setq *depolyed-poke-slot* r)
-                          (pokemon.po.client::write-battle-switch-pokemon (shanai.po.battle:battle-id battle)
+                          (po-proto::write-battle-switch-pokemon (shanai.po.battle:battle-id battle)
                                                                           (get-stream con)
                                                                           :pokemon-slot r)))))
           (pokemon.po.client::write-battle-use-attack

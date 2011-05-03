@@ -2,6 +2,10 @@
 
 (in-package :shanai.po.bot)
 
+(defun force-non-breaking-spaces (string)
+  (declare (type string string))
+  (ppcre:regex-replace "\\b(\\s+)\\b" string "&nbsp;"))
+
 (defun move-to-html-string (move)
   (cl-who:with-html-output-to-string (*standard-output*)
     (:TABLE :ALIGN :CENTER :CELLPADDING 2 :CELLSPACING 0 :STYLE
@@ -20,7 +24,8 @@
             (:TBODY
                     (:TR :STYLE "background-color:#c0c0c0; vertical-align:middle;"
                          (:TD :ALIGN :CENTER (cl-who:str (position move pokemon::*movedex*)))
-                         (:TD :ALIGN :CENTER (cl-who:esc (pokemon::name move)))
+                         (:TD :ALIGN :CENTER (force-non-breaking-spaces
+                                              (cl-who:esc (pokemon::name move))))
                          (:TD :ALIGN :CENTER (:IMG :SRC  (format nil "Themes/Classic/types/type~A.png" (position (alexandria:make-keyword (pokemon::poketype move)) pokemon::+pokemon-types+))))
                          (:TD :ALIGN :CENTER (cl-who:str (pokemon::damage-class move)))
                          (:TD :ALIGN :CENTER (cl-who:str (pokemon::power move)))

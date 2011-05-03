@@ -21,6 +21,7 @@
   (list "(fuck)"
         "(THOMAS)" ; annoying troll
         "(badass)"
+        "^(Fuk)"
         "(sh[i1]t)"
         "(anus)"
         "(anal)"

@@ -34,7 +34,7 @@
 
 (defparameter +importable-teams+
   (list
-   "Axew (M) @ Potion
+#+ ()   "Axew (M) @ Potion
 Trait: Mold Breaker
 EVs: 32 HP / 60 Atk / 196 SAtk / 220 Spd
 Naive Nature (+Spd, -SDef)
@@ -78,6 +78,52 @@ Jolly Nature (+Spd, -SAtk)
 - Aerial Ace
 - Faint Attack
 - Bug Bite"
+#+ () "Spoink (M) @ (No Item)
+Trait: Own Tempo
+EVs: 116 Def / 196 SAtk / 196 Spd
+Timid Nature (+Spd, -Atk)
+- Psyshock
+- Power Gem
+
+Magnemite @ (No Item)
+Trait: Sturdy
+EVs: 236 Atk / 36 Def / 236 SAtk
+Quiet Nature (+SAtk, -Spd)
+- Magnet Bomb
+- Electro Ball
+
+Croagunk (M) @ (No Item)
+Trait: Anticipation
+EVs: 188 Atk / 124 Def / 196 Spd
+Jolly Nature (+Spd, -SAtk)
+- Wake-Up Slap
+- Venoshock
+- Strength
+- Faint Attack
+
+Spearow (M) @ (No Item)
+Trait: Keen Eye
+EVs: 196 Atk / 116 Def / 196 Spd
+Jolly Nature (+Spd, -SAtk)
+- Faint Attack
+- Aerial Ace
+
+Treecko (M) @ (No Item)
+Trait: Unburden
+EVs: 236 Atk / 36 SAtk / 236 Spd
+Hasty Nature (+Spd, -Def)
+- Grass Pledge
+- Aerial Ace
+- Strength
+
+Skorupi (M) @ (No Item)
+Trait: Keen Eye
+EVs: 196 Atk / 76 Def / 236 Spd
+Naive Nature (+Spd, -SDef)
+- Bug Bite
+- Aerial Ace
+- Faint Attack
+- Venoshock"
 
    "Spearow (M) @ (No Item)
 Trait: Keen Eye

@@ -1,15 +1,6 @@
 (in-package :pokemon.po.client)
 
-(defmacro with-input-from-octet-vector ((var list) &rest body)
-  (alexandria:once-only ((l list))
-    `(with-input-from-vector (,var (make-array (length ,l)
-                                               :element-type '(unsigned-byte 8)
-                                               :initial-contents
-                                               (typecase ,l
-                                                 (array (loop for i across ,l
-                                                             collect i))
-                                                 (otherwise ,l))))
-       ,@body)))
+
 
 
 
@@ -29,12 +20,12 @@
 
 
 (defun read-server-announcement (in)
-  (values (read-qtstring in) :server-announcement))
+  (values (binary-data:read-qtstring in) :server-announcement))
 
 (defun read-channels-list (in)          ; 44
   (let ((channel-count (read-u4 in)))
     (values (loop for i from 1 to channel-count
-               collect (cons (read-u4 in) (read-qtstring in)))
+               collect (cons (read-u4 in) (binary-data:read-qtstring in)))
             :channels-list)))
 
 (defun read-leave-channel (in)          ; 47
@@ -63,7 +54,7 @@
 
 (defun read-tier-node (in)
   (let ((level (read-u1 in)))
-    (multiple-value-bind (string length) (read-qtstring in)
+    (multiple-value-bind (string length) (binary-data:read-qtstring in)
       (values (list :level level :name string)
               (+ 1 length)))))
 
@@ -85,8 +76,8 @@
 
 (defun read-player-info (s)
   (values (list (read-u4 s)
-                (read-qtstring s)
-                (read-qtstring s)
+                (binary-data:read-qtstring s)
+                (binary-data:read-qtstring s)
                 (read-u1 s)
                 (cons :flags (read-u1 s))
                 (read-u2 s))
@@ -137,13 +128,13 @@ names to match channel ids or user names to match user ids and so on."
 (define-po-protocol-reader logout 3 (in))
 (define-po-protocol-reader send-message 4 (in)
   "A message sent directly from the server itself."
-  (read-qtstring in))
+  (binary-data:read-qtstring in))
 (flet ((puid (stream)
          (cons (read-u2 stream) (read-u1 stream))))
   (define-po-protocol-reader player-list 5 (in)
     (list :player-id (read-u4 in)
-          :player-name (read-qtstring in)
-          :player-info (read-qtstring in)
+          :player-name (binary-data:read-qtstring in)
+          :player-info (binary-data:read-qtstring in)
           :player-auth (read-u1 in)
           :player-flags (read-u1 in)
           :player-rating (read-u2 in)
@@ -151,7 +142,7 @@ names to match channel ids or user names to match user ids and so on."
           (list (puid in) (puid in) (puid in)
                 (puid in) (puid in) (puid in))
           :player-avatar (read-u2 in)
-          :player-tier (read-qtstring in)
+          :player-tier (binary-data:read-qtstring in)
           :player-color (list (read-u1 in) (read-u2 in) (read-u2 in)
                               (read-u2 in) (read-u2 in) (read-u2 in))
           :player-gen (read-u1 in))))
@@ -171,7 +162,7 @@ names to match channel ids or user names to match user ids and so on."
 (defun read-poke-battle-data (in)
   (let ((pnum (read-u2 in))
         (forme (read-u1 in))
-        (nick (read-qtstring in))
+        (nick (binary-data:read-qtstring in))
         (max-hp (read-u2 in)))
     (make-instance 'shanai.pokemon:battle-pokemon
                    :id pnum
@@ -254,11 +245,11 @@ names to match channel ids or user names to match user ids and so on."
 
 We return a salt that has to be appended to the hashed password and then
 the whole thing has to be hashed again."
-  (read-qtstring in))
+  (binary-data:read-qtstring in))
 (defun write-ask-for-pass (hash out)
   (write-u2 out (+ 5 (ccl:string-size-in-octets hash :external-format :utf-16be)))
   (write-u1 out 13)
-  (write-qtstring hash out))
+  (binary-data:write-qtstring hash out))
 (define-po-protocol-reader register 14 (in))
 
 (define-po-protocol-reader player-kick 15 (in)
@@ -282,10 +273,10 @@ or one. 1 = away, 0 = ready for battles."
 (define-po-protocol-reader get-ban-list 24 (in))
 (define-po-protocol-reader c-p-ban 25 (in)
   "client player ban:"
-  (read-qtstring in))
+  (binary-data:read-qtstring in))
 (define-po-protocol-reader c-p-unban 26 (in)
   "Client player unban:"
-  (read-qtstring in))
+  (binary-data:read-qtstring in))
 (define-po-protocol-reader spectate-battle 27 (in)
  #+ () (list :battle-id (read-u4 in)
         :battle-message-spot (read-u1 in)
@@ -331,7 +322,7 @@ or one. 1 = away, 0 = ready for battles."
 (define-po-protocol-reader find-battle 36 (in))
 (define-po-protocol-reader show-rankings 37 (in))
 (define-po-protocol-reader announcement 38 (in)
-  (read-qtstring in))
+  (binary-data:read-qtstring in))
 
 (define-po-protocol-reader c-p-t-ban 39 (in))
 (define-po-protocol-reader c-p-t-unban 40 (in))
@@ -340,7 +331,7 @@ or one. 1 = away, 0 = ready for battles."
 (define-po-protocol-reader battle-list 43 (in))
 (define-po-protocol-reader channels-list 44 (in)
   (loop for i from (read-u4 in) downto 1
-     collecting (cons (read-u4 in) (read-qtstring in))))
+     collecting (cons (read-u4 in) (binary-data:read-qtstring in))))
 (define-po-protocol-reader channel-players 45 (in))
 (define-po-protocol-reader join-channel 46 (in)
   (list :channel-id (read-u4 in)
@@ -363,14 +354,14 @@ Reasons a channel might stop existing:
 
 Note that the format of the packets for this is 'backwards'. 
 That is the qtstring comes before the channel-id."
-  (let ((name (read-qtstring in)))
+  (let ((name (binary-data:read-qtstring in)))
     (list :channel-id (read-u4 in)
           :channel-name name)))
 
 (define-po-protocol-reader channel-message 51 (in)
   "Standard channel message."
   (list :channel-id (read-u4 in)
-        :channel-name (read-qtstring in)))
+        :channel-name (binary-data:read-qtstring in)))
 (defun write-channel-message (value stream &key id)
   (print-po-raw stream (encode-message (make-instance 'channel-message :channel-id id :message value))))
 
@@ -381,15 +372,15 @@ The main channel is always id number 0."
   (funcall #'read-add-channel in))
 (define-po-protocol-reader html-message 53 (in)
   "`send-message' but with html turned on."
-  (read-qtstring in))
+  (binary-data:read-qtstring in))
 (define-po-protocol-reader channel-html 54 (in)
   "Same as a normal channel message, but with some html parsing.
 
 Most common usage is for whenever a user does /me."
   (list :channel-id (read-u4 in)
-        :channel-html (read-qtstring in)))
+        :channel-html (binary-data:read-qtstring in)))
 (define-po-protocol-reader server-name 55 (in)
-  (read-qtstring in))
+  (binary-data:read-qtstring in))
 (define-po-protocol-reader special-pass 56 (in))
 
 (define-po-battle-protocol-reader blank-message 28 (in)
@@ -402,7 +393,7 @@ Most common usage is for whenever a user does /me."
         :from-spot (read-u1 in)
         :pokemon-id (read-u2 in)
         :forme-id (read-u1 in)
-        :pokemon-nick (read-qtstring in)
+        :pokemon-nick (binary-data:read-qtstring in)
         :percent-health (read-u1 in)
         :status-flags (read-u4 in) ; only 10 bytes of this are used...
         :gender (read-u1 in)
@@ -440,7 +431,7 @@ Most common usage is for whenever a user does /me."
   (declare (ignore in)))
 (define-po-battle-protocol-reader stat-change 12 (in)
   (list :stat-index (read-u1 in)
-        :stat-value (read-s1 in)))
+        :stat-value (binary-data:read-s1  in)))
 (define-po-battle-protocol-reader status-change 13 (in)
   "The pokemon in SLOT has it's status flags changed."
   (list :status-flags (read-u1 in)))
@@ -454,7 +445,7 @@ For example poison damage or paralysis."
   (declare (ignore in)))
 (define-po-battle-protocol-reader battle-chat 16 (in)
   "Sent when someone speaks in the battle chat."
-  (list :message (read-qtstring in)))
+  (list :message (binary-data:read-qtstring in)))
 
 (define-po-battle-protocol-reader move-message 17 (in)
   "Sent when someone speaks in the battle chat."
@@ -504,10 +495,10 @@ Modifiers include attack, defense, sp-attack, sp-def, speed.
 There are 3 other slots that are right now unknown as to what they are for,
 but they likely are used to measure spike count among other temporary
 effects." 
-  (list :attack (read-s1 in) :defense (read-s1 in)
-        :special-attack (read-s1 in) :special-defense (read-s1 in)
-        :speed (read-s1 in) :unknown1 (read-s1 in)
-        :unknown2 (read-s1 in) :unknown3 (read-s1 in)))
+  (list :attack (binary-data:read-s1  in) :defense (binary-data:read-s1  in)
+        :special-attack (binary-data:read-s1  in) :special-defense (binary-data:read-s1  in)
+        :speed (binary-data:read-s1  in) :unknown1 (binary-data:read-s1  in)
+        :unknown2 (binary-data:read-s1  in) :unknown3 (binary-data:read-s1  in)))
 (define-po-battle-protocol-reader spectating 33 (in)
   "Applies for when a spectator joins and or parts."
   (list :spectator-status (case (read-u1 in)
@@ -517,7 +508,7 @@ effects."
 
 (define-po-battle-protocol-reader spectator-chat 34 (in)
   (list :spectator-user-id (read-u4 in)
-        :message (read-qtstring in)))
+        :message (binary-data:read-qtstring in)))
 
 (define-po-battle-protocol-reader clock-start 37 (in)
   (list :remaining-time (read-u2 in)))
@@ -531,7 +522,7 @@ effects."
 
 (define-po-battle-protocol-reader tier-section 40 (in)
   "Is the battle rated or not?"
-  (list (read-qtstring in)))
+  (list (binary-data:read-qtstring in)))
 
 (define-po-battle-protocol-reader make-your-choice 43 (in)
   "Sent when it is time for a person to make a move."
@@ -650,12 +641,12 @@ effects."
            (type (integer 1 5) generation))
   (let ((out-vector (with-output-to-vector (s nil :external-format :utf-16be)
                       (write-u1 s 6)
-                      (write-qtstring nickname s)
-                      (write-qtstring info s)
-                      (write-qtstring lose s)
-                      (write-qtstring win s)
+                      (binary-data:write-qtstring nickname s)
+                      (binary-data:write-qtstring info s)
+                      (binary-data:write-qtstring lose s)
+                      (binary-data:write-qtstring win s)
                       (write-u2 s avatar)
-                      (write-qtstring default-tier s)
+                      (binary-data:write-qtstring default-tier s)
                       (write-u1 s generation)
                       (loop for p in pkminfo
                          do (%write-poke-personal-from-import-list p s)))))
@@ -688,7 +679,7 @@ effects."
            (type stream stream))
   (write-u2 stream pokemon)
   (write-u1 stream forme)
-  (write-qtstring nickname stream)
+  (binary-data:write-qtstring nickname stream)
   (write-u2 stream item)
   (print ability)
   (write-u2 stream ability)

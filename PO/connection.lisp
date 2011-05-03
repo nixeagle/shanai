@@ -33,3 +33,14 @@ Local to each thread that is created.")
   (typecase thing
     (stream thing)
     (usocket:stream-usocket (usocket:socket-stream thing))))
+
+(defmacro with-input-from-octet-vector ((var list) &rest body)
+  (alexandria:once-only ((l list))
+    `(with-input-from-vector (,var (make-array (length ,l)
+                                               :element-type '(unsigned-byte 8)
+                                               :initial-contents
+                                               (typecase ,l
+                                                 (array (loop for i across ,l
+                                                             collect i))
+                                                 (otherwise ,l))))
+       ,@body)))

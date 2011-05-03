@@ -1,3 +1,7 @@
+(defpackage #:shanai.config
+  (:use :cl)
+  (:documentation "global project configuration... of some sort."))
+
 (defpackage #:shanai.generic
   (:use :cl)
   (:nicknames :generic)
@@ -79,6 +83,7 @@ These functions all must be implemented by various other packages.")
   (:use :cl :binary-data)
   (:nicknames :po-proto)
   (:export #:write-join-channel
+           #:read-qtstring
            #:write-leave-channel
            #:write-channel-message
            #:write-challenge-stuff))
