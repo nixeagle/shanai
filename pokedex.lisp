@@ -1,7 +1,7 @@
 ;;; Import all related data for the pokedex.
 (in-package :pokemon)
 
-(defun load-pokedex (&optional (po-directory *po-directory*))
+(defun load-pokedex (&optional (po-directory (conf:po-root-directory)))
   "Load all related pokedex information from PO-DIRECTORY.
 
 Will destructively modify *POKEDEX* by first clearing all entries then
@@ -15,7 +15,7 @@ reloading each entry after that piecemeal."
                           *pokedex* pline hash)
         (setf (gethash (pokemon-id-from-parsed-line pline) hash)
               (make-instance 'pokemon :number (car pline) :type '(???)
-                             :base-stats (apply #'battle-stats (nthcdr 2 pline)))))
+                             :base-stats (apply #'shanai.pokemon:make-stats (nthcdr 2 pline)))))
 
       (with-po-data-file ("pokes/pokemons.txt"
                           *pokedex* pline hash)
@@ -40,7 +40,7 @@ reloading each entry after that piecemeal."
                                                                (list (nth (third pline) *typedex*)))))))))))
 (in-package :shanai.pokedex)
 
-(defstruct (pokemon-uid (:predicate)
+(defstruct (pokemon-uid (:predicate pokemon-uid-p)
                         (:copier)
                         (:constructor pokemon-uid
                                       (identifier &optional (sub-identifier 0)
@@ -54,8 +54,15 @@ the relevant pokemon generation.
 FORME-ID indicates which forme is being identified. We default this to
 zero, pokemon with multiple formes will have a positive number associated
 with this."
-  (id 60666 :type (unsigned-byte 2))
-  (forme-id 255 :type (unsigned-byte 1)))
+  (id #xFFFF :type binary-data:u2)
+  (forme-id 255 :type binary-data:u1))
+
+(defmethod generic:object-id ((uid pokemon-uid))
+  "Pokemon's id, ignoring formes."
+  (slot-value uid 'id))
+
+(defmethod generic:forme-id ((uid pokemon-uid))
+  (slot-value uid 'forme-id))
 
 (defun make-pokedex ()
   (make-hash-table :test #'equalp))

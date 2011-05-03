@@ -1,7 +1,12 @@
 (defpackage #:shanai.config
   (:use :cl)
-  (:documentation "global project configuration... of some sort."))
+  (:documentation "global project configuration... of some sort.")
+  (:nicknames :conf)
+  (:export #:po-root-directory))
 
+(defpackage #:shanai.global
+  (:use :cl)
+  (:documentation "Global variables and functions to manipulate them."))
 (defpackage #:shanai.generic
   (:use :cl)
   (:nicknames :generic)
@@ -15,7 +20,8 @@ These functions all must be implemented by various other packages.")
            #:tier
            #:gen
            #:type1
-           #:type2))
+           #:type2
+           #:forme-id))
 
 (defpackage #:shanai.pokemon
   (:export :stats
@@ -29,7 +35,25 @@ These functions all must be implemented by various other packages.")
            #:stats-spd
 
            :battle-pokemon
-           )
+           #:pokemon-id
+           #:pokemon-forme
+           #:pokemon-name
+           #:pokemon-type
+           #:pokemon-weight
+           #:pokemon-base-stats
+           #:pokemon-height
+           #:pokemon-gen
+           #:pokemon-gender
+           #:pokemon-level
+           #:pokemon-nickname
+           #:pokemon-shiny-p
+           #:pokemon-ivs
+           #:pokemon-current-hp
+           #:pokemon-evs
+           #:pokemon-item
+           #:pokemon-ability
+           #:pokemon-happiness
+           #:pokemon-moves)
   (:use :cl)
   #+ ()   (:import-from :eos #:is #:test)
   #+ ()   (:import-from :alexandria :non-negative-fixnum)

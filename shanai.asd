@@ -7,14 +7,13 @@
   :depends-on (:eos :hunchentoot :alexandria :split-sequence :iterate :cl-who
                     :PARSE-DECLARATIONS-1.0 :ironclad
                     :cl-ppcre :drakma :cl-json
-                    :shanai.define-user-command :shanai.binary-data :flexi-streams )
+                    :shanai.define-user-command
+                    :shanai.binary-data :flexi-streams)
   :components
   ((:file "packages")
    (:file "config" :depends-on ("packages"))
    (:file "team" :depends-on ("packages"))
    (:file "generic" :depends-on ("packages"))
-   
-   
    (:module "PO"
             :depends-on ("packages" "generic")
             :components
@@ -48,9 +47,10 @@
              (:file "user-warn-patterns")))
    (:file "battle" :depends-on ("team" "generic"))
    (:file "po-data-import" :depends-on ("Pokemon"))
-   (:file "pokedex" :depends-on ("Pokemon" "po-data-import"))
+   (:file "pokedex" :depends-on ("Pokemon" "po-data-import" "config"))
    (:file "po-client" :depends-on ("packages" "generic" "PO" "Pokemon"))
    (:file "scratch" :depends-on ("packages" "generic" "PO" "Pokemon" "po-client"))
    (:file "movedex" :depends-on ("Pokemon" "po-data-import"))
    (:file "handle-command" :depends-on ("po-client" "Pokemon" "movedex"))
-   (:file "shanai-simple-init" :depends-on ("movedex" "pokedex"))))
+   (:file "shanai-simple-init" :depends-on ("movedex" "pokedex"))
+   (:file "www" :depends-on ("Pokemon" "movedex" "pokedex" "po-client"))))

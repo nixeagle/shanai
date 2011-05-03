@@ -27,3 +27,6 @@ gamefreak pokemon generations currently known."))
   (:documentation  "Returns the string name of THING's tier."))
 (defgeneric type1 (thing))
 (defgeneric type2 (thing))
+
+(defgeneric forme-id (thing)
+  (:documentation "ID of THING's forme."))

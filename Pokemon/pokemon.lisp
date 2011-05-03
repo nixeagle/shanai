@@ -493,8 +493,5 @@ Order is important!")
 (defmethod print-object ((obj pokemon) stream)
   (print-unreadable-object (obj stream :type t)
     (let ((stats (base-stats obj)))
-      (format stream "~A ~A/~A/~A/~A/~A/~A"
-              (name obj) (hp stats) (attack stats) (defense stats)
-              (special-attack stats) (special-defense stats)
-              (speed stats)))))
+      (format stream "~A ~A" (name obj) stats))))
 
