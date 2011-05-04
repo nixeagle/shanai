@@ -3,4 +3,17 @@
 
 (in-package :shanai.global)
 
+(defparameter *po-output-stream* nil
+  "Output stream used by each `connection' object.
+
+Anything that needs to output a packet involving the PO client or server
+should output to this stream.")
+
+(defvar *active-po-bots* nil
+  "Contains a list of all active bots.")
+
+(defun active-po-bots ()
+  "List of all active bots."
+  *active-po-bots*)
+
 

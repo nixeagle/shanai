@@ -15,9 +15,11 @@ Make sure your file path ends with a trailing slash!")
 
 Returns the percentage chance that a particular hit will occur."
   (* base-accuracy (/ accuracy-of-user evasion)))
-
-
-(defclass pokemon ()
+(defmethod name ((obj shanai.pokemon:basic-pokemon))
+   (error obj))
+(defmethod number ((obj shanai.pokemon:basic-pokemon))
+  (slot-value obj 'shanai.pokemon::id))
+#+ () (defclass pokemon ()
   (;(shinyp :initarg :shinyp :type 'boolean :readers (shinyp))
    (number :initarg :number :type 'fixnum :readers (number))
    (name :initarg :name :type 'string :readers (name))
@@ -80,6 +82,7 @@ Returns the percentage chance that a particular hit will occur."
   "Create an instance of BATTLE-STATISTICS."
   (battle-stats 0 atk def sp-atk sp-def spd))
 
+#+ ()
 (defmethod print-object ((obj battle-statistics) stream)
   "Print details of a BATTLE-STATISTICS object."
   (print-unreadable-object (obj stream :type :t)
@@ -114,12 +117,14 @@ Only released generations are I, II, III, IV, and V. So this corresponds to
      2))
 
 
+#+ ()
 (defun make-gen-ds-pokemon (dex-no id nature lvl-caught lvl-current exp pokestats ability)
   )
-
+#+ ()
 (defun my-pokemon (dex-no nature lvl-caught lvl-current exp pokestats ability)
   (make-gen-ds-pokemon dex-no 21278 nature lvl-caught lvl-current exp pokestats ability))
 
+#+ ()
 (defmacro my-pokemon* (dex-no nickname nature lvl-caught ability day month year &rest stats)
   `(make-gen-ds-pokemon ,dex-no 21278 ,nature ,lvl-caught nil nil nil ,ability))
 
@@ -243,7 +248,7 @@ Docs: http://www.smogon.com/dp/articles/damage_formula#mod1"
   ;; modeling only obvious/simplistic 
   (make-instance 'battle-pokemon :level level :dv dv-stats :moves move-power
                  :hp-remaining (hp dv-stats)))
-
+#+ ()
 (defmethod print-object ((obj battle-pokemon) stream)
   (print-unreadable-object (obj stream :type t)
     (let ((stats (dv (base-pokemmon obj))))
@@ -272,6 +277,7 @@ Docs: http://www.smogon.com/dp/articles/damage_formula#mod1"
   (declare (type battle-pokemon poke1 poke2))
   (list poke1 poke2))
 
+#+ ()
 (deftype battle-box ()
   "List of 1 to 6 BATTLE-POKEMON being brought along for a fight."
   '(or (cons battle-pokemon null)
@@ -280,12 +286,12 @@ Docs: http://www.smogon.com/dp/articles/damage_formula#mod1"
     (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon null))))
     (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon null)))))
     (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon (cons battle-pokemon null))))))))
-
+#+ ()
 (defclass player ()
   ((battle-team :initarg :team :type 'battle-box :accessor battle-team)
    (name :initarg :name :type 'string :reader name))
   (:documentation "Pokemon trainer information"))
-
+#+ ()
 (defclass battle-player (player)
   ((entry-hazards :initarg :entry-hazards :accessor entry-hazards)
    (exit-hazards :initarg :exit-hazards :accessor exit-hazards)))
@@ -409,7 +415,7 @@ at one time."))
 (defgeneric player1 (thing))
 (defgeneric player2 (thing))
 
-
+#+ ()
 (defclass battle ()
   ((players :documentation "Player list."
              :initarg :players
@@ -432,22 +438,22 @@ at one time."))
 
 :player1 corresponds to 0, :player2 corresponds to 1 and :spectator corresponds to -1."
   '(member :spectator :player1 :player2))
-
+#+ ()
 (defun make-ai-player (&key name)
   (make-instance 'player :name name :team (list (create-battle-pokemon 5 (battle-stats 21 9 6 10 8 12) 50))))
-
+#+ ()
 (defun make-test-battle ()
   (make-instance 'battle :players (list (make-instance 'player :name "AI" :team (list (create-battle-pokemon 5 (battle-stats 21 9 6 10 8 12) 50)))
                                         (make-ai-player :name "AI-OPP"))))
-
+#+ ()
 (defmethod player1 ((obj battle))
   "First player of 2 in a pokemon battle."
   (first (players obj)))
-
+#+ ()
 (defmethod player2 ((obj battle))
   "Second player of 2 in a pokemon battle."
   (second (players obj)))
-
+#+ ()
 (defun pprint-detailed-battle-data (battle)
   (format nil "Battle: Turn #~A Weather: ~A
   P1: ~A        P2: ~A"
@@ -455,7 +461,7 @@ at one time."))
           (weather battle)
           (name (player1 battle))
           (name (player2 battle))))
-
+#+ ()
 (defun analyze-attack-damage (battle attacker defender move)
   (simple-damagecalc-min-max (level (first (battle-team attacker)))
                              (power move) (attack (dv (first (battle-team attacker))))
@@ -489,7 +495,7 @@ Order is important!")
   '(member :bug :dark :dragon :electric :fighting :fire :flying :ghost
     :grass :ground :ice :normal :poison :psychic :rock :steel :water :???))
 
-
+#+ ()
 (defmethod print-object ((obj pokemon) stream)
   (print-unreadable-object (obj stream :type t)
     (let ((stats (base-stats obj)))

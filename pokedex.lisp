@@ -14,7 +14,7 @@ reloading each entry after that piecemeal."
       (with-po-data-file ("pokes/poke_stats.txt"
                           *pokedex* pline hash)
         (setf (gethash (pokemon-id-from-parsed-line pline) hash)
-              (make-instance 'pokemon :number (car pline) :type '(???)
+              (make-instance 'shanai.pokemon:basic-pokemon :id (car pline) :type '(???)
                              :base-stats (apply #'shanai.pokemon:make-stats (nthcdr 2 pline)))))
 
       (with-po-data-file ("pokes/pokemons.txt"
@@ -36,7 +36,7 @@ reloading each entry after that piecemeal."
         (with-pokemon (pokemon pline hash)
           (when pokemon
             (setf pokemon (reinitialize-instance pokemon
-                                                 :type (append (poketype pokemon)
+                                                 :type (append (shanai.pokemon:pokemon-type pokemon)
                                                                (list (nth (third pline) *typedex*)))))))))))
 (in-package :shanai.pokedex)
 

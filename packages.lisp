@@ -6,7 +6,10 @@
 
 (defpackage #:shanai.global
   (:use :cl)
-  (:documentation "Global variables and functions to manipulate them."))
+  (:nicknames :global)
+  (:documentation "Global variables and functions to manipulate them.")
+  (:export :*po-output-stream*))
+
 (defpackage #:shanai.generic
   (:use :cl)
   (:nicknames :generic)
@@ -33,7 +36,7 @@ These functions all must be implemented by various other packages.")
            #:stats-satk
            #:stats-sdef
            #:stats-spd
-
+           :basic-pokemon
            :battle-pokemon
            #:pokemon-id
            #:pokemon-forme

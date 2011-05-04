@@ -1,6 +1,6 @@
 (in-package #:shanai.battle)
 
-(defclass battle-trainer (shanai.po.client::trainer
+(defclass battle-trainer (shanai.po.client::basic-trainer
                           shanai.team::basic-team)
   ())
 

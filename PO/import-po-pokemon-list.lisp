@@ -171,7 +171,7 @@ Brave Nature (+Atk, -Spd)
 - Faint Attack
 - Aerial Ace"
 
-   "Spoink (M) @ Potion
+#+ ()   "Spoink (M) @ Potion
 Trait: Own Tempo
 EVs: 196 SAtk / 116 SDef / 196 Spd
 Timid Nature (+Spd, -Atk)
@@ -217,7 +217,7 @@ Timid Nature (+Spd, -Atk)
 - Magnet Bomb
 - Electro Ball"
 
-"Cubchoo (M) @ (No Item)
+#+ () "Cubchoo (M) @ (No Item)
 Trait: Snow Cloak
 EVs: 156 HP / 196 SAtk / 40 SDef / 116 Spd
 Modest Nature (+SAtk, -Atk)
@@ -262,7 +262,7 @@ Jolly Nature (+Spd, -SAtk)
 - Aerial Ace
 - Faint Attack"
 
-   "Spoink (M) @ (No Item)
+#+ ()   "Spoink (M) @ (No Item)
 Trait: Own Tempo
 EVs: 76 Def / 196 SAtk / 40 SDef / 196 Spd
 Timid Nature (+Spd, -Atk)

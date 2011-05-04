@@ -16,6 +16,12 @@
   "List of all currently loaded modules in the lisp image."
   #+:ccl ccl::*modules*)
 
+
+(unless (find "c:/cygwin/home/Tim/hackage/lisp/www-shanai/"
+              asdf:*central-registry* :test #'equalp)
+  (setq asdf:*central-registry*
+        (cons "c:/cygwin/home/Tim/hackage/lisp/www-shanai/"
+              asdf:*central-registry*)))
 ;; copy-instance awesome!
 
 ;; decode-string-from-octets encode-string-to-octets

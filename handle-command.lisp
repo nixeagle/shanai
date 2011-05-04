@@ -125,7 +125,7 @@ Format is #foobar"
 
 (defun find-pokemon-by-name (term)
   (loop for val being the hash-value of pokemon::*pokedex*
-     when (string-equal (pokemon::name val) term) return val))
+     when (string-equal (shanai.pokemon:pokemon-name val) term) return val))
 (defmethod handle-command ((cmd (eql :scripts)) (con connection) (msg message))
   (reply con msg "<a href=\"http://pokemon-online.eu/scripts.js\">PO Beta server Scripts.js</a>"))
 

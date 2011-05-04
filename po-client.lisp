@@ -530,7 +530,7 @@ else."
 (defun @login-alpha-test-ai ()
   "Test function to log the AI in and join Shanai"
   (po-login-ai (progn (po-start-alpha-listen-loop :port 5888 :host "nixeagle.org") (sleep 3) @po-alpha-socket@))
-  (po-proto:write-join-channel "Shanai" (get-stream @po-alpha-socket@)))
+ #+ () (po-proto:write-join-channel "Shanai" (get-stream *po-socket*)))
 
 (defun @debug-login-test-ai ()
   (po-login-ai (progn (let ((*po-socket* (connect "91.121.73.228" 5080 :nickname "Shanai")))

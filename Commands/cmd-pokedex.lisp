@@ -4,10 +4,11 @@
   (let ((int (parse-integer args :junk-allowed t)))
         (if int
             (let ((poke (gethash int pokemon::*pokedex*)))
-              (reply (if poke (pokemon.po.client::html-escape (princ-to-string poke))
+              (reply (if poke
+                         (format nil "<b>#~A</b> <i>~A</i> ~A" (shanai.pokemon:pokemon-id poke) (cl-who:escape-string (name poke)) (shanai.pokemon:pokemon-base-stats poke))
                                  "Could not find it! Did you typo?")))
             (let ((poke (pokemon.po.client::find-pokemon-by-name args)))
-              (reply (if poke (pokemon.po.client::html-escape (princ-to-string poke))
+              (reply (if poke (format nil "<b>#~A</b> <i>~A</i> ~A" (shanai.pokemon:pokemon-id poke) (cl-who:escape-string (name poke)) (shanai.pokemon:pokemon-base-stats poke))
                                  "Could not find it! Did you typo?"))))))
 
 

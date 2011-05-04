@@ -1,9 +1,15 @@
 (in-package :shanai.po.protocol)
 
-
+(defun with-forced-output-function (thunk stream)
+  "After THUNK is called, force output on STREAM."
+  (declare (type function thunk)
+           (type stream stream))
+  (funcall thunk)
+  (force-output stream))
 
 (defmacro with-forced-output (stream &body body)
-  `(progn ,@body (force-output ,stream)))
+  `(with-forced-output-function
+       #'(lambda () ,@body) ,stream))
 
 (defun write-join-channel (channel out)
   "Join CHANNEL given as a string."
@@ -44,6 +50,7 @@
   (write-u4 user stream)
   (write-u4 clauses stream)
   (write-u1 mode stream))
+
 
 
 (defun write-battle-switch-pokemon (battle-id stream &key

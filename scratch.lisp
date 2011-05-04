@@ -17,34 +17,9 @@
                                  (values nil nil))))
 
 
-
-
-(defun read-server-announcement (in)
+#+ () (defun read-server-announcement (in)
   (values (binary-data:read-qtstring in) :server-announcement))
 
-(defun read-channels-list (in)          ; 44
-  (let ((channel-count (read-u4 in)))
-    (values (loop for i from 1 to channel-count
-               collect (cons (read-u4 in) (binary-data:read-qtstring in)))
-            :channels-list)))
-
-(defun read-leave-channel (in)          ; 47
-  (values (list :channel-id (read-u4 in)
-                :player-id  (read-u4 in))
-          :leave-channel))
-
-(defun read-join-channel (in)
-  (values (list :channel-id (read-u4 in)
-                :player-id  (read-u4 in))
-          :join-channel))
-
-(defun read-engage-battle (in)          ; 8
-  (values '()
-          :engage-battle))
-
-(defun read-what-are-you (in)           ; 0
-  (values '()
-          :what-are-you))
 (defun read-battle-outcome (in)
   (case (read-u1 in)
     (0 :forfeit)
@@ -726,9 +701,10 @@ effects."
 (defun %write-poke-personal-from-import-list (pokelist out)
   "Write a pokemon's data from the import list."
   (destructuring-bind ((poke gender item) trait evlist nature moves) pokelist
+    (declare (ignore nature item gender))
     (let ((moves (loop for move in moves collect (position move pokemon::*movedex*))))
       (print (%locate-trait-position-hack trait))
-      (apply #'%write-poke-personal (pokemon::number poke) out
+      (apply #'%write-poke-personal (shanai.pokemon:pokemon-id poke) out
              :level 5
              :move1 (first moves)
              :move2 (if (< 1 (length moves)) (second moves) 0)

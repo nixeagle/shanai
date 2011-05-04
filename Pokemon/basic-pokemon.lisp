@@ -32,6 +32,10 @@ Only released generations are I, II, III, IV, and V. So this corresponds to
    (gen :initarg :gen :initform 5 :reader pokemon-gen
         :type 'valid-generation-number)))
 
+(defmethod generic:name ((poke basic-pokemon))
+  (slot-value poke 'name))
+(defmethod generic:forme-id ((poke basic-pokemon))
+  (slot-value poke 'forme))
 (defclass pokemon (basic-pokemon)
   ((gender :initarg :gender :reader pokemon-gender)
    (level :initarg :level :reader pokemon-level)
