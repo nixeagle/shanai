@@ -5,7 +5,7 @@
 (defmethod handle-command ((cmd (eql :source)) (con connection) (msg message))
   (reply con msg "I'm licensed under the GNU GPL version 3 or later. Find me on <a href=\"http://github.com/nixeagle/shanai\">github</a>!"))
 (defmethod handle-command ((cmd (eql :forums)) (con connection) (msg message))
-  (reply con msg "<a href=\"http://pokemon-online.eu/forums/\">http://pokemon-online.eu/forums/</a>"))
+  (reply con msg "Check out our brand new <a href=\"http://alpha.nixeagle.net/index.php\">forums</a>!"))
 (defmethod handle-command ((cmd (eql :tour)) (con connection) (msg message))
   (reply con msg "There is a tournement going on in #tournaments!"))
 (defmethod handle-command ((cmd (eql :tiers)) (con connection) (msg message))
@@ -235,7 +235,6 @@ Format is #foobar"
 
 (defmethod handle-command ((cmd (eql :tres)) (con connection) (msg message))
   (multiple-value-bind (nick cmd args) (parse-possible-command (message msg))
-    (reply con msg (google-translate args "en" "es"))
     (reply con msg (concatenate 'string "<b>" (html-escape nick) ":</b> " (html-escape (google-translate args "en" "es"))))))
 
 (defmethod handle-command ((cmd (eql :tren)) (con connection) (msg message))
@@ -290,3 +289,55 @@ Format is #foobar"
 
 (define-bot-command config (con target user args)
   (reply "For future use to adjust configuration options."))
+
+
+
+;;; more bot command stuff
+(defun handle-send-message (value &key (con (global:current-connection)))
+  (let ((pmsg (parse-server-send-message value)))
+    (or (when pmsg
+          (let ((uid (getf pmsg :user-id))
+                (cid (getf pmsg :channel-id))
+                (command (getf pmsg :command))
+                (args (getf pmsg :args)))
+            (case command
+              (:help (po-client:raw-notice uid cid "<b>TODO, actual help!</b>" :con con))
+              (:n (po-client:raw-notice uid cid "<i>You moved north!</i> Next should come info about the new area that you moved into!"))
+              (:s (po-client:raw-notice uid cid "<i>You moved south!</i> Next should come info about the new area that you moved into!"))
+              (:e (po-client:raw-notice uid cid "<i>You moved east!</i> Next should come info about the new area that you moved into!"))
+              (:w (po-client:raw-notice uid cid "<i>You moved west!</i> Next should come info about the new area that you moved into!"))
+              (:commands (po-client:raw-notice uid cid "<table align=center><tr><td width=10em align=center>help</td><td width=10em align=center>commands</td><td width=10em align=center>look</td><</tr></table>"))
+              (:look (po-client:raw-notice uid cid (format nil "<b>TODO, here should display information about '~A' that can be gleaned by simply obvserving it/them</b>" (cl-who:escape-string args)))
+                     (po-client:privmsg cid (format nil "/sendhtmlall <timestamp/><i>~A looks at ~A</i>"
+                                                    (cl-who:escape-string (name (get-trainer uid con)))
+                                                    (cl-who:escape-string args))))
+              (otherwise
+               (let ((action (rpg-cmd:rpg-command-call value)))
+                 (if action
+                   (case (car action)
+                     (:raw-notice-reply
+                      (po-client:raw-notice uid cid (second action))))
+                   (progn (po-client:raw-notice uid cid "<timestamp/>Sorry this command does not actually exist yet!")
+                          (po-client:privmsg "Shanai"
+                                             (format nil "User ~A in channel ~A tried to use a non-existant command!:<br>!~A"
+                                                     (who:escape-string (name (get-trainer uid con)))
+                                                     (if (get-channel cid con)
+                                                         (who:escape-string (name (get-channel cid con)))
+                                                         cid)
+                                                     (who:escape-string (princ-to-string pmsg)))
+                                             :con con)))))))))))
+
+(defun parse-server-send-message (msg)
+  (declare (type string msg))
+  (ppcre:register-groups-bind ((#'s-util:make-keyword type)
+                               (#'parse-integer chanid)
+                               (#'parse-integer userid)
+                               (#'s-util:make-keyword comchar)
+                               (#'s-util:make-keyword command) rest)
+      ("^([^\\s]+) (\\d+) (\\d+) :([!?;])([^\\s]+) ?(.*)" msg)
+    (declare (type keyword type command comchar)
+             (type alexandria:non-negative-fixnum chanid userid)
+             (type string rest))
+    (list :type type :channel-id chanid :user-id userid
+          :comchar comchar :command command :args rest)))
+

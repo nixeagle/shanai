@@ -34,7 +34,7 @@
 
 (defparameter +importable-teams+
   (list
-#+ ()   "Axew (M) @ Potion
+   "Axew (M) @ Potion
 Trait: Mold Breaker
 EVs: 32 HP / 60 Atk / 196 SAtk / 220 Spd
 Naive Nature (+Spd, -SDef)
@@ -78,7 +78,7 @@ Jolly Nature (+Spd, -SAtk)
 - Aerial Ace
 - Faint Attack
 - Bug Bite"
-#+ () "Spoink (M) @ (No Item)
+ "Spoink (M) @ (No Item)
 Trait: Own Tempo
 EVs: 116 Def / 196 SAtk / 196 Spd
 Timid Nature (+Spd, -Atk)
@@ -125,7 +125,7 @@ Naive Nature (+Spd, -SDef)
 - Faint Attack
 - Venoshock"
 
-   "Spearow (M) @ (No Item)
+  "Spearow (M) @ (No Item)
 Trait: Keen Eye
 EVs: 255 Atk / 196 Spd
 Naive Nature (+Spd, -SDef)
@@ -171,7 +171,7 @@ Brave Nature (+Atk, -Spd)
 - Faint Attack
 - Aerial Ace"
 
-#+ ()   "Spoink (M) @ Potion
+  "Spoink (M) @ Potion
 Trait: Own Tempo
 EVs: 196 SAtk / 116 SDef / 196 Spd
 Timid Nature (+Spd, -Atk)
@@ -217,7 +217,7 @@ Timid Nature (+Spd, -Atk)
 - Magnet Bomb
 - Electro Ball"
 
-#+ () "Cubchoo (M) @ (No Item)
+ "Cubchoo (M) @ (No Item)
 Trait: Snow Cloak
 EVs: 156 HP / 196 SAtk / 40 SDef / 116 Spd
 Modest Nature (+SAtk, -Atk)
@@ -261,7 +261,143 @@ EVs: 28 HP / 196 Atk / 56 SAtk / 228 Spd
 Jolly Nature (+Spd, -SAtk)
 - Aerial Ace
 - Faint Attack"
+ "Chimchar (M) @ (No Item)
+Trait: Iron Fist
+EVs: 4 HP / 52 Atk / 4 Def / 212 SAtk / 236 Spd
+Naive Nature (+Spd, -SDef)
+- Aerial Ace
+- Fire Pledge
+- Strength
 
+Magnemite @ (No Item)
+Trait: Sturdy
+EVs: 156 Atk / 40 Def / 76 SAtk / 236 Spd
+Naive Nature (+Spd, -SDef)
+- Magnet Bomb
+- Electro Ball
+
+Skorupi (M) @ (No Item)
+Trait: Keen Eye
+EVs: 36 HP / 200 Atk / 36 SAtk / 236 Spd
+Naive Nature (+Spd, -SDef)
+- Bug Bite
+- Aerial Ace
+- Venoshock
+
+Teddiursa (M) @ (No Item)
+Trait: Honey Gather
+EVs: 36 HP / 196 Atk / 36 Def / 40 SDef / 196 Spd
+Jolly Nature (+Spd, -SAtk)
+- Faint Attack
+- Strength
+- Aerial Ace
+
+Axew (M) @ (No Item)
+Trait: Mold Breaker
+EVs: 220 Atk / 36 SAtk / 220 Spd
+Hasty Nature (+Spd, -Def)
+- Dragon Pulse
+- Aerial Ace
+- Strength
+
+Croagunk (M) @ (No Item)
+Trait: Anticipation
+EVs: 188 Atk / 108 SAtk / 196 Spd
+Naive Nature (+Spd, -SDef)
+- Wake-Up Slap
+- Venoshock
+- Strength"
+#+ ()
+"Croagunk (M) @ (No Item)
+Trait: Anticipation
+EVs: 4 HP / 252 Atk / 252 Spd
+Jolly Nature (+Spd, -SAtk)
+- Venoshock
+- Faint Attack
+- Strength
+- Wake-Up Slap
+
+Magnemite @ (No Item)
+Trait: Sturdy
+EVs: 4 HP / 252 SAtk / 252 Spd
+Timid Nature (+Spd, -Atk)
+- Magnet Bomb
+- Electro Ball
+
+Chimchar (M) @ (No Item)
+Trait: Iron Fist
+EVs: 
+Hardy Nature
+- Fire Pledge
+- Aerial Ace
+- Strength
+
+Spearow (M) @ (No Item)
+Trait: Keen Eye
+EVs: 8 HP / 252 Atk / 248 Spd
+Jolly Nature (+Spd, -SAtk)
+- Aerial Ace
+- Faint Attack
+
+Nosepass (M) @ (No Item)
+Trait: Sand Force
+EVs: 252 HP / 4 SAtk / 252 SDef
+Calm Nature (+SDef, -Atk)
+- Power Gem
+- Strength
+
+Treecko (M) @ (No Item)
+Trait: Unburden
+EVs: 4 HP / 252 SAtk / 252 Spd
+Timid Nature (+Spd, -Atk)
+- Grass Pledge
+- Aerial Ace
+- Strength"
+#+ ()
+"Spearow (M) @ (No Item)
+Trait: Keen Eye
+EVs: 8 HP / 252 Atk / 248 Spd
+Jolly Nature (+Spd, -SAtk)
+- Aerial Ace
+- Faint Attack
+
+Magnemite @ (No Item)
+Trait: Sturdy
+EVs: 4 HP / 252 SAtk / 252 Spd
+Timid Nature (+Spd, -Atk)
+- Magnet Bomb
+- Electro Ball
+
+Chimchar (M) @ (No Item)
+Trait: Iron Fist
+EVs: 4 HP / 252 SAtk / 252 Spd
+Modest Nature (+SAtk, -Atk)
+- Fire Pledge
+- Aerial Ace
+- Strength
+
+Croagunk (M) @ (No Item)
+Trait: Anticipation
+EVs: 4 HP / 252 Atk / 252 Spd
+Jolly Nature (+Spd, -SAtk)
+- Venoshock
+- Faint Attack
+- Strength
+- Wake-Up Slap
+
+Spoink (M) @ (No Item)
+Trait: Own Tempo
+EVs: 255 SAtk / 255 Spd
+Modest Nature (+SAtk, -Atk)
+- Psyshock
+
+Treecko (M) @ (No Item)
+Trait: Unburden
+EVs: 4 HP / 252 SAtk / 252 Spd
+Timid Nature (+Spd, -Atk)
+- Grass Pledge
+- Aerial Ace
+- Strength"
 #+ ()   "Spoink (M) @ (No Item)
 Trait: Own Tempo
 EVs: 76 Def / 196 SAtk / 40 SDef / 196 Spd

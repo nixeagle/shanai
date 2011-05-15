@@ -27,7 +27,7 @@
         "(anal)"
         "(rapist)"
         "(blow)"
-        "(Bot\\d*)$"
+        "(Bot\\d+)$"
         "(nigga)"
         "(n[i1]gg[e3]r)" 
         "(cunt)" 

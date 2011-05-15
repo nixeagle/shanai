@@ -17,3 +17,8 @@ should output to this stream.")
   *active-po-bots*)
 
 
+(defparameter *current-connection* nil
+  "Dynamic variable containing the current connection.")
+
+(defun current-connection ()
+  *current-connection*)

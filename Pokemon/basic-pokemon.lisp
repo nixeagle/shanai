@@ -36,6 +36,14 @@ Only released generations are I, II, III, IV, and V. So this corresponds to
   (slot-value poke 'name))
 (defmethod generic:forme-id ((poke basic-pokemon))
   (slot-value poke 'forme))
+
+(defmethod generic:type1 ((poke basic-pokemon))
+  (alexandria:make-keyword (princ-to-string (car (slot-value poke 'type)))))
+
+(defmethod generic:type2 ((poke basic-pokemon))
+  (alexandria:make-keyword (princ-to-string (second (slot-value poke 'type)))))
+
+
 (defclass pokemon (basic-pokemon)
   ((gender :initarg :gender :reader pokemon-gender)
    (level :initarg :level :reader pokemon-level)
@@ -50,7 +58,17 @@ Only released generations are I, II, III, IV, and V. So this corresponds to
    (item :initarg :item :reader pokemon-item)
    (ability :initarg :ability :reader pokemon-ability)
    (happiness :initarg :happiness :reader pokemon-happiness)
-   (moves :initarg :moves :reader pokemon-moves)))
+   (moves :initarg :moves :reader pokemon-moves)
+   (status :initarg :status :accessor pokemon-status
+           :initform :none)))
 
+(defun pokemon-koedp (poke)
+  "True if POKE is knocked out."
+  (declare (type battle-pokemon poke))
+  (eql (pokemon-status poke) :ko))
 
+(defun !mark-koed (poke)
+  "Destructively mark POKE as koed."
+  (declare (type battle-pokemon poke))
+  (setf (pokemon-status poke) :ko))
 

@@ -168,7 +168,7 @@ enum Stat { Hp = 0,     Attack = 1,     Defense = 2,
 (defun find-move (name-or-id)
   "Look up a move by NAME-OR-ID."
   (declare (type (or fixnum string) name-or-id))
-  (the move
+  (the (or move null)
     (typecase name-or-id
       (fixnum (and (< 0 name-or-id +total-moves+) (aref *movedex* name-or-id)))
       (string (find name-or-id *movedex* :test #'string-equal :key #'name)))))

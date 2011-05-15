@@ -6,7 +6,7 @@
 (asdf:defsystem :shanai
   :depends-on (:eos :hunchentoot :alexandria :split-sequence :iterate :cl-who
                     :PARSE-DECLARATIONS-1.0 :ironclad
-                    :cl-ppcre :drakma :cl-json
+                    :cl-ppcre :drakma :cl-json :parenscript
                     :shanai.define-user-command
                     :shanai.binary-data :flexi-streams)
   :components
@@ -15,7 +15,7 @@
    (:file "team" :depends-on ("packages"))
    (:file "generic" :depends-on ("packages"))
    (:module "PO"
-            :depends-on ("packages" "generic")
+            :depends-on ("packages" "generic" "Pokemon")
             :components
             ((:module "Client"
                       :depends-on ("connection" "po-battle")
@@ -40,6 +40,7 @@
              (:file "cmd-cmdtest")
              (:file "cmd-movedex")
              (:file "cmd-pokedex")
+             (:file "cmd-homepage")
              (:file "cmd-shanai-cup")
              (:file "cmd-username-whitelist")
              (:file "cmd-vote")

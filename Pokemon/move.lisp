@@ -11,13 +11,13 @@
 (defclass move ()
   ((name :initarg :name :type 'string :reader name)
    (number :initarg :number :type 'valid-move-number :reader number)
-   (type :initarg :type :reader poketype)
+   (type :initarg :type :reader poketype :reader move-type)
    (learning)                           ; How the move is learned...
    (pp :initarg :pp :reader pp)
    (priority :initarg :priority :reader priority)
    (effect-description :initarg :effect-description :reader effect-description)
    (effect-fun :initarg :effect-fun :reader effect-fun)
-   (power :initarg :power :reader power)
+   (power :initarg :power :reader power :reader move-power)
    (effect :initarg :effect :reader effect)
    (accuracy :initarg :accuracy :reader accuracy)
    (effect-accuracy :initarg :effect-accuracy :reader effect-accuracy)
@@ -52,9 +52,11 @@ moves that bypass substitute such as Taunt. PO's C++ enumeration is
   (:documentation "Description of a pokemon move."))
 
 
+(defmethod generic:type1 ((move move))
+  (alexandria:make-keyword (slot-value move 'type)))
 
-
-
+(defmethod generic:object-id ((move move))
+  (slot-value move 'number))
 
 
 

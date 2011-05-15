@@ -8,7 +8,9 @@
   (:use :cl)
   (:nicknames :global)
   (:documentation "Global variables and functions to manipulate them.")
-  (:export :*po-output-stream*))
+  (:export :*po-output-stream*
+           :*current-connection*
+           #:current-connection))
 
 (defpackage #:shanai.generic
   (:use :cl)
@@ -24,10 +26,13 @@ These functions all must be implemented by various other packages.")
            #:gen
            #:type1
            #:type2
-           #:forme-id))
+           #:forme-id
+           #:po-htmlize))
 
 (defpackage #:shanai.pokemon
   (:export :stats
+           #:!mark-koed
+           #:pokemon-koedp
            #:make-stats
            #:statp
            #:stats-hp
@@ -63,7 +68,7 @@ These functions all must be implemented by various other packages.")
   #+ ()   (:import-from :split-sequence #:split-sequence)
   #+ ()   (:import-from :iterate :iter :for :appending :collecting :generate :generating :next))
 (defpackage #:shanai.po.client
-  (:use :cl
+  (:use :cl :generic
         :binary-data)
   (:import-from :split-sequence #:split-sequence)
   (:nicknames :po-client)
@@ -71,7 +76,10 @@ These functions all must be implemented by various other packages.")
            #:get-channel
            #:get-trainer
            #:channel-id
-           #:channel-name))
+           #:channel-name
+           #:channel-equal
+           #:privmsg
+           #:raw-notice))
 
 (defpackage #:shanai.po.bot.user-warn-patterns
   (:use :cl)
@@ -115,7 +123,7 @@ These functions all must be implemented by various other packages.")
            #:write-channel-message
            #:write-challenge-stuff))
 (defpackage #:shanai.po.bot
-  (:use :cl :shanai.define-user-command :shanai.generic))
+  (:use :cl :shanai.define-user-command :shanai.generic :shanai.po.client))
 
 (defpackage #:shanai.pokedex
   (:use :cl))
@@ -138,7 +146,8 @@ Pokemon Online git repository source."))
 
 
 (defpackage #:shanai.www
-  (:use :cl))
+  (:use :cl)
+  (:shadowing-import-from :cl-who :*prologue*))
 
 (defpackage #:shanai.battle
   (:use :cl :shanai.pokemon)
@@ -147,7 +156,8 @@ Pokemon Online git repository source."))
            #:battle-challenged))
 
 (defpackage #:shanai.team
-  (:use :cl))
+  (:use :cl)
+  (:export #:team-pokemon))
 
 (defpackage #:shanai.po.battle
   (:use :cl :shanai.battle
@@ -155,4 +165,31 @@ Pokemon Online git repository source."))
   (:export :battle
            #:battle-id
            #:battle-spectators
-           #:battle-spectating-p))
+           #:battle-spectating-p
+           #:battle-in-progress-p))
+
+(defpackage #:shanai.formulas
+  (:use :cl :shanai.pokemon.type :shanai.generic
+        :shanai.pokedex :shanai.pokemon))
+
+(defpackage #:shanai.po.bot.zombie
+  (:use :cl :shanai.po.bot :shanai.generic :shanai.define-user-command)
+  (:export #:zombie-game
+           #:make-game-state))
+
+
+(defpackage #:shanai.util
+  (:use :cl)
+  (:nicknames :s-util)
+  (:export #:make-keyword))
+
+
+(defpackage #:shanai.rpg.global
+  (:nicknames :rpg-global)
+  (:use :cl))
+
+(defpackage #:shanai.rpg.commands
+  (:nicknames :rpg-cmd)
+  (:use :cl :shanai.rpg.global)
+  (:export #:rpg-command-call))
+

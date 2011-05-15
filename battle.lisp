@@ -4,7 +4,6 @@
                           shanai.team::basic-team)
   ())
 
-
 (defclass basic-battle ()
   ((challenger :initarg :challenger
                :accessor battle-challenger)

@@ -1,3 +1,4 @@
+
 ;;; Small wrapper over the binary-data package written by gigamonkeys.
 
 (asdf:defsystem :shanai.binary-data

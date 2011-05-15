@@ -161,7 +161,11 @@ Messages are of the format <message length (2 octets)><message>."
                                            :channel-id (po-client:channel-id (po-client:get-channel "shanaindigo" socket))))
          (force-output (get-stream socket))
          (remhash (shanai.po.client::channel-name chan) (channels socket))
-         (remhash id (channels socket)))))))
+         (remhash id (channels socket)))))
+    (:send-message
+     (shanai.po.bot::handle-send-message value))))
+
+
 
 (defparameter *channelnames* nil)
 (defun maybe-write-username (string stream)
@@ -269,8 +273,18 @@ Messages are of the format <message length (2 octets)><message>."
       (setq *last-time* (GET-UNIVERSAL-TIME))
       "Scripts are down. Please try again later. Abusing them may get you kicked.")))
 
+;;; Needs to eventually move somewhere else other the here.
+(defvar *shanai-channel-messages*
+  (list)
+  "List of channel messages recived in a specific channel.")
+
 (defmethod handle-event ((con connection) (msg channel-message))
   "Handle a message sent to us somehow :P"
+  (when (and *isalpha*
+             (eq (pokemon.po.client::channel-id msg)
+                 (po-client:channel-id (po-client:get-channel "Hackage" con))))
+    (alexandria:appendf *shanai-channel-messages*
+                        (list (message msg))))
   (multiple-value-bind (nick cmd args) (parse-possible-command (message msg))
     (cond
       ((string-equal (parse-possible-user-alias (message msg)) "+CountBot")
@@ -392,8 +406,9 @@ else."
 (defvar @po-alpha-socket@ nil)
 (defun po-start-alpha-listen-loop (&key (port 5777) (host  "nixeagle.org"))
   (bt:make-thread (lambda ()
-                    (let ((*po-socket* (connect host port :nickname "Shanai"))
-                          (*isalpha* t))
+                    (let* ((*po-socket* (connect host port :nickname "Shanai"))
+                          (*isalpha* t)
+                          (global:*current-connection* *po-socket*))
                       (setf @po-alpha-socket@ *po-socket*)
                                         ;let ((*po-socket-recv-log* '())) (removnig let expression)
                       (unwind-protect
@@ -517,20 +532,24 @@ else."
     (when cmd
       (handle-command (intern (string-upcase cmd) :keyword)
                       con msg)
-      (funcall (shanai.po.bot::bot-command cmd)
-               con msg nick args))))
+      (if nick
+          (funcall (shanai.po.bot::bot-command cmd)
+                   con msg (shanai.po.client:get-trainer nick con) args)
+          (progn (po-proto:write-channel-message (cl-who:escape-string (format nil "Attempted command by private message from: ~A." (shanai.po.client:get-trainer (user-id msg)  *po-socket*)))
+                                                 (get-stream con) :channel-id (shanai.po.client::shanai-channel-id))
+                 (force-output (get-stream con)))))))
 
 
 
 
 (defun @login-test-ai ()
   "Test function to log the AI in and join Shanai"
-  (po-login-ai (progn (po-start-listen-loop :port 5089 :host "91.121.73.228") (sleep 3) @po-socket@)))
+  (po-login-ai (progn (po-start-listen-loop :port 5085 :host "91.121.73.228") (sleep 3) @po-socket@)))
 
 (defun @login-alpha-test-ai ()
   "Test function to log the AI in and join Shanai"
   (po-login-ai (progn (po-start-alpha-listen-loop :port 5888 :host "nixeagle.org") (sleep 3) @po-alpha-socket@))
- #+ () (po-proto:write-join-channel "Shanai" (get-stream *po-socket*)))
+  (po-proto:write-join-channel "Shanai" (get-stream @po-alpha-socket@)))
 
 (defun @debug-login-test-ai ()
   (po-login-ai (progn (let ((*po-socket* (connect "91.121.73.228" 5080 :nickname "Shanai")))

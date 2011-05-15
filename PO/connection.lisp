@@ -28,6 +28,8 @@ Local to each thread that is created.")
              :initform (make-hash-table :test #'equalp))))
 
 
+(defmethod generic:name ((con connection))
+  (slot-value con 'nickname))
 ;;; should be defined elsehwere but works fine here
 (defun get-stream (thing)
   (typecase thing

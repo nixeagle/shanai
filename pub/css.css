@@ -1,0 +1,79 @@
+body {
+     background-color:#dff1f7;
+	 position:relative;
+	 padding:0px;
+	 margin:0px;
+	 margin-top:8px;
+}
+
+#tier_opponent {
+     margin-left:5px;
+}
+
+#opponent {
+     font-weight:bold;
+}
+
+#turn {
+     position:absolute;
+	 left:50%;
+	 top:0px;
+}
+
+#turn span {
+     font-weight:bold;
+}
+
+#trainer, #player {
+    width:37%;
+    background-color:pink;
+    border:3px solid aqua;
+    float:right;
+}
+
+#player {
+    margin-top:8px;
+    background-color:green;
+    float:left;
+    margin-left:1%;
+}
+
+#trainer span, #player span {
+    width:33%;
+    display:block;
+    float:left;
+    text-align:center;
+    font-weight:bold;
+}
+
+
+
+#movelist {
+    padding-left:1%;
+    margin-top:85px;
+}
+
+.move {
+    width:49.5%;
+    display:block;
+    float:left;
+    text-align:center;
+    background-color:tan;
+}
+
+.move .name {
+    font-weight:bold;
+}
+
+#healthbar {
+    width:20%;
+    margin-left:1%;
+    clear:both;
+    background-color:white;
+    text-align:center;
+}
+
+.koed {
+    text-decoration: line-through;
+    font-color: grey;
+}

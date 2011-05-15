@@ -30,3 +30,6 @@ gamefreak pokemon generations currently known."))
 
 (defgeneric forme-id (thing)
   (:documentation "ID of THING's forme."))
+
+
+(defgeneric po-htmlize (thing &key &allow-other-keys))
