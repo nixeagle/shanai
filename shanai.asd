@@ -15,7 +15,7 @@
    (:file "team" :depends-on ("packages"))
    (:file "generic" :depends-on ("packages"))
    (:module "PO"
-            :depends-on ("packages" "generic" "Pokemon" "po-client")
+            :depends-on ("packages" "generic" "Pokemon")
             :components
             ((:module "Client"
                       :depends-on ("connection" "po-battle")
