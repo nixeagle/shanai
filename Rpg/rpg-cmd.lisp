@@ -12,13 +12,14 @@
           (setq *commands* (concatenate 'vector (vector new-entry) *commands*)))
       (setq *commands* (sort *commands* #'> :key #'third)))))
 
-(defun normalize-arglist-for-ppcre (arglist)
-  (mapcar (lambda (arg) (typecase arg
-                          (cons (if (functionp (car arg))
-                                    arg
-                                    (list `(function ,(first arg)) (second arg))))
-                          (otherwise arg)))
-          arglist))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun normalize-arglist-for-ppcre (arglist)
+    (mapcar (lambda (arg) (typecase arg
+                            (cons (if (functionp (car arg))
+                                      arg
+                                      (list `(function ,(first arg)) (second arg))))
+                            (otherwise arg)))
+            arglist)))
 
 (defun frob-define-command-arglist (arglist)
   "Remove all references to functions if they exist and provide only the
