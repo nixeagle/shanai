@@ -1,1 +1,4 @@
 *~
+*.wx32fsl
+*#
+config.lisp
