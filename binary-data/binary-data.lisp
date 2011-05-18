@@ -1,7 +1,6 @@
 (in-package :cl-user)
 (defpackage #:shanai.binary-data
   (:use :cl)
-  (:nicknames :binary-data)
   (:export :unsigned-integer :u1 :u2 :u3 :u4 :s1 :s2 :s3
            :s4 :signed-integer :generic-qt-string
            #:write-qtstring

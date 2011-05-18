@@ -54,8 +54,8 @@ the relevant pokemon generation.
 FORME-ID indicates which forme is being identified. We default this to
 zero, pokemon with multiple formes will have a positive number associated
 with this."
-  (id #xFFFF :type binary-data:u2)
-  (forme-id 255 :type binary-data:u1))
+  (id #xFFFF :type shanai.binary-data:u2)
+  (forme-id 255 :type shanai.binary-data:u1))
 
 (defmethod generic:object-id ((uid pokemon-uid))
   "Pokemon's id, ignoring formes."

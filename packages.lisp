@@ -69,7 +69,7 @@ These functions all must be implemented by various other packages.")
   #+ ()   (:import-from :iterate :iter :for :appending :collecting :generate :generating :next))
 (defpackage #:shanai.po.client
   (:use :cl :generic
-        :binary-data)
+        :shanai.binary-data)
   (:import-from :split-sequence #:split-sequence)
   (:nicknames :po-client)
   (:export #:trainer-id
@@ -115,7 +115,7 @@ These functions all must be implemented by various other packages.")
 
 
 (defpackage #:shanai.po.protocol
-  (:use :cl :binary-data)
+  (:use :cl :shanai.binary-data)
   (:nicknames :po-proto)
   (:export #:write-join-channel
            #:read-qtstring

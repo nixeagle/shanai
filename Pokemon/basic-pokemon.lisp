@@ -6,12 +6,12 @@
              (:predicate statsp)
              :named
              (:type vector))
-  (hp 0 :type binary-data:u2)
-  (atk 0 :type binary-data:u2)
-  (def 0 :type binary-data:u2)
-  (satk 0 :type binary-data:u2)
-  (sdef 0 :type binary-data:u2)
-  (spd 0 :type binary-data:u2))
+  (hp 0 :type shanai.binary-data:u2)
+  (atk 0 :type shanai.binary-data:u2)
+  (def 0 :type shanai.binary-data:u2)
+  (satk 0 :type shanai.binary-data:u2)
+  (sdef 0 :type shanai.binary-data:u2)
+  (spd 0 :type shanai.binary-data:u2))
 
 (deftype valid-generation-number ()
   "Range of valid pokemon generations.
