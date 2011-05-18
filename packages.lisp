@@ -178,11 +178,7 @@ Pokemon Online git repository source."))
            #:make-game-state))
 
 
-(defpackage #:shanai.util
-  (:use :cl)
-  (:nicknames :s-util)
-  (:export #:make-keyword
-           #:esc))
+
 
 
 (defpackage #:shanai.rpg.global

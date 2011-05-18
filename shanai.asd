@@ -8,6 +8,7 @@
                     :PARSE-DECLARATIONS-1.0 :ironclad
                     :cl-ppcre :drakma :cl-json :parenscript
                     :shanai.define-user-command
+                    :shanai.util :postmodern
                     :shanai.binary-data :flexi-streams)
   :components
   ((:file "packages")
@@ -16,7 +17,7 @@
    (:file "team" :depends-on ("packages"))
    (:file "generic" :depends-on ("packages"))
    (:module "PO"
-            :depends-on ("packages" "generic" "Pokemon" "global")
+            :depends-on ("packages" "generic" "Pokemon" "global" "message")
             :components
             ((:module "Client"
                       :depends-on ("connection" "po-battle")
@@ -38,7 +39,8 @@
             :depends-on ("packages" "generic")
             :components
             ((:file "rpg-cmd")
-             (:file "rpg-global")))
+             (:file "rpg-global")
+             (:file "rpg-database")))
    (:module "Commands"
             :depends-on ("packages" "Pokemon" "PO" "handle-command")
             :components
@@ -55,11 +57,12 @@
    (:file "battle" :depends-on ("team" "generic"))
    (:file "po-data-import" :depends-on ("Pokemon"))
    (:file "pokedex" :depends-on ("Pokemon" "po-data-import" "config"))
-   (:file "po-client" :depends-on ("packages" "generic" "PO" "Pokemon"))
+   (:file "po-client" :depends-on ("packages" "generic" "PO" "Pokemon" "message"))
    (:file "scratch" :depends-on ("packages" "generic" "PO" "Pokemon" "po-client"))
    (:file "movedex" :depends-on ("Pokemon" "po-data-import"))
    (:file "handle-command" :depends-on ("po-client" "Pokemon" "movedex" "Rpg"
                                                     "google-translate"))
    (:file "shanai-simple-init" :depends-on ("movedex" "pokedex"))
-   (:file "google-translate" :depends-on ("packages"))
+   (:file "google-translate" :depends-on ("packages" "config"))
+   (:file "message" :depends-on ("generic"))
    (:file "www" :depends-on ("Pokemon" "movedex" "pokedex" "po-client"))))

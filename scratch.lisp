@@ -1,9 +1,5 @@
 (in-package :pokemon.po.client)
 
-
-
-
-
 (defvar *po-protocol-handlers*
   (make-array 60 :element-type '(or symbol function)
               :initial-element (lambda (in)

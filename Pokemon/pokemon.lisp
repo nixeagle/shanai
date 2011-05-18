@@ -3,10 +3,7 @@
 (in-package :pokemon)
 
 (eos:def-suite :pokemon)
-(defvar *po-directory* "C:/cygwin/home/Tim/repos/pogeymon-online/"
-  "Full path to where Pokemon Online source/installation is.
 
-Make sure your file path ends with a trailing slash!")
 
 
 

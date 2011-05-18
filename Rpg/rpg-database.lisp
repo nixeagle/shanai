@@ -17,11 +17,9 @@
                        :where (:= 'id id))) :plist))
 
 
-(insert-rpg-player (make-instance 'rpg-global::rpg-player
+
+#+ () (insert-rpg-player (make-instance 'rpg-global::rpg-player
                                   :name "nixeagle"))
 
 
 
-(query "ALTER TABLE players OWNER TO eagle;")
-(sql (:create-table name
-                    (("name" :type (varchar 20)))))
