@@ -301,22 +301,26 @@ Format is #foobar"
                 (command (getf pmsg :command))
                 (args (getf pmsg :args)))
             (case command
-              (:help (po-client:raw-notice uid cid "<b>TODO, actual help!</b>" :con con))
+              
               (:n (po-client:raw-notice uid cid "<i>You moved north!</i> Next should come info about the new area that you moved into!"))
               (:s (po-client:raw-notice uid cid "<i>You moved south!</i> Next should come info about the new area that you moved into!"))
               (:e (po-client:raw-notice uid cid "<i>You moved east!</i> Next should come info about the new area that you moved into!"))
               (:w (po-client:raw-notice uid cid "<i>You moved west!</i> Next should come info about the new area that you moved into!"))
-              (:commands (po-client:raw-notice uid cid "<table align=center><tr><td width=10em align=center>help</td><td width=10em align=center>commands</td><td width=10em align=center>look</td><</tr></table>"))
-              (:look (po-client:raw-notice uid cid (format nil "<b>TODO, here should display information about '~A' that can be gleaned by simply obvserving it/them</b>" (cl-who:escape-string args)))
+
+              #+ () (:look (po-client:raw-notice uid cid (format nil "<b>TODO, here should display information about '~A' that can be gleaned by simply obvserving it/them</b>" (cl-who:escape-string args)))
                      (po-client:privmsg cid (format nil "/sendhtmlall <timestamp/><i>~A looks at ~A</i>"
                                                     (cl-who:escape-string (name (get-trainer uid con)))
                                                     (cl-who:escape-string args))))
               (otherwise
-               (let ((action (rpg-cmd:rpg-command-call value)))
+               (let ((action (rpg-cmd:rpg-command-call value (get-trainer uid con)
+                                                       (get-channel cid con)
+                                                       con)))
                  (if action
                    (case (car action)
                      (:raw-notice-reply
-                      (po-client:raw-notice uid cid (second action))))
+                      (po-client:raw-notice uid cid (second action)))
+                     (:raw-channel-reply
+                      (po-client:privmsg cid (second action) :con con)))
                    (progn (po-client:raw-notice uid cid "<timestamp/>Sorry this command does not actually exist yet!")
                           (po-client:privmsg "Shanai"
                                              (format nil "User ~A in channel ~A tried to use a non-existant command!:<br>!~A"

@@ -32,20 +32,25 @@
   "Our job is to return a function of N arguments that will be later called."
   (declare (ignore options))
   `(ensure-command ',name
-    (lambda (target-string)
-      (ppcre:register-groups-bind ,(normalize-arglist-for-ppcre arglist)
-          (,regex target-string)
-        ,@body)) :priority ,priority))
+    (lambda (target-string user target connection)
+      (declare (ignore connection))
+      (flet ((sender () user)
+             (target () target))
+        (ppcre:register-groups-bind ,(normalize-arglist-for-ppcre arglist)
+            (,regex target-string)
+          ,@body))) :priority ,priority))
 
 (lambda (regex)
   (ppcre:register-groups-bind nil ("a" regex)
     :a))
-(defun rpg-command-call (string)
+
+(defun rpg-command-call (string user target connection)
   "Loop through all the defined rpg commands passing STRING.
 
 Will stop calling rpg commands after one returns a non nil value."
+  (declare (ignore connection))
   (loop for command across *commands*
-     for result = (funcall (second command) string)
+     for result = (funcall (second command) string user target connection)
      when result
      return result))
 
@@ -63,9 +68,87 @@ Will stop calling rpg commands after one returns a non nil value."
 (define-command (reverse-words/1word ";wordreverse \\w+.*") (:priority -1)
   (list :raw-notice-reply
         "You passed only one word. This command requires two! Try:<br>
-;wordreverse word1 word2") )
+;wordreverse word1 word2"))
 
 (define-command (reverse-words/noword ";wordreverse*") (:priority -2)
   (list :raw-notice-reply
         "You gave me no words to reverse! Try:<br>
-;wordreverse word1 word2") )
+;wordreverse word1 word2"))
+
+(define-command (help "[?;!]help") ()
+  (list :raw-notice-reply "<b>TODO, actual help!</b>"))
+
+(define-command (commands "[?;]commands") ()
+  (list :raw-notice-reply "<table align=center><tr><td width=10em align=center>help</td><td width=10em align=center>commands</td><td width=10em align=center>look</td></tr></table>"))
+
+(define-command (look ";look (?:at )?(.*)" (cl-who:escape-string args)) ()
+  (list :raw-notice-reply
+        (format nil "<b>TODO, here should display information about '~A' that can be gleaned by simply obvserving it/them</b>" args))
+  (list :raw-channel-reply
+        (format nil "/sendhtmlall <timestamp/><i>~A looks at ~A</i>"
+                (cl-who:escape-string (generic:name (sender)))
+                args)))
+
+(define-command (signup ";signup") ()
+  (let ((player (rpg-db:select-rpg-player-by-name (name (sender)))))
+    (if player
+     (list :raw-notice-reply
+           (format nil "<timestamp/>~A: You are already signed up! Your account id is ~A." (esc (getf player :name))
+                   (getf player :id)))
+     (progn (rpg-db::insert-rpg-player
+             (make-instance 'rpg-global::rpg-player :name
+                            (name (sender))))
+            (list :raw-notice-reply
+                  (format nil "<timestamp/>~A: Thank you for signing up! An account has been created for you, please ;login." (esc (name (sender))))))))
+  ;(rpg-global::add-rpg-player (name (sender)))
+  )
+(define-command (info-list-players "\\?\\?list all players") ()
+  (list :raw-channel-reply
+        (format nil "~A requested player list:<br>~A"
+                (esc (name (sender)))
+                (mapcar (lambda (n) (esc (name n)))
+                        rpg-global::*trainers*))))
+
+(define-command (choose ";choose (.*)" arg) ()
+  (list :raw-channel-reply
+        (format nil "~A chose ~A!" (esc (name (sender))) arg)))
+
+(define-command (login ";login") ()
+  (let ((player (handle-user-login (name (sender)))))
+    (if player
+        (list :raw-channel-reply
+              (format nil "<timestamp/>~A has logged into the RPG!" (esc (name player))))
+        (list :raw-notice-reply
+              (format nil "<timestamp/>~A: You have already logged in!"
+                      (esc (name (sender))))))))
+
+(define-command (logout ";logout") ()
+  (let ((player (find (name (sender)) rpg-global::*trainers*
+                      :key #'name :test #'string-equal)))
+    (if player
+        (progn
+          (handle-user-logout (name player))
+          (list :raw-notice-reply
+                (format nil "<timestamp/>~A: Thank you for playing, see you soon!" (esc (name player)))))
+        (list :raw-notice-reply
+              (format nil "<timestamp/>~A: You are already logged out!"
+                      (esc (name (sender))))))))
+
+
+(defun handle-user-login (username)
+  (declare (type string username))
+  (let ((player (rpg-db:select-rpg-player-by-name username)))
+    (when (and player (not (find username rpg-global::*trainers* :key #'name :test #'string-equal)))
+      (rpg-global::add-rpg-player (getf player :name)))))
+
+(defun handle-user-logout (username)
+  (declare (type string username))
+  (setq rpg-global::*trainers*
+        (remove username rpg-global::*trainers* :key #'name :test #'string=)))
+
+
+(define-command (imp "!shimp (.*)" arg) ()
+  (list :raw-channel-reply
+        (format nil "~A" arg)))
+
+

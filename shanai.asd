@@ -35,7 +35,7 @@
              (:file "pokemon")
              (:file "basic-pokemon")))
    (:module "Rpg"
-            :depends-on ("packages")
+            :depends-on ("packages" "generic")
             :components
             ((:file "rpg-cmd")
              (:file "rpg-global")))

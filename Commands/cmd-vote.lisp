@@ -44,19 +44,19 @@
 (in-package :shanai.po.bot)
 
 (define-bot-command vote (con target user args)
-  (let ((trainer-id (shanai.po.client:trainer-id (shanai.po.client::get-trainer user con))))
+  (let ((trainer-id (shanai.po.client:trainer-id user)))
     (ppcre:register-groups-bind ((#'parse-integer poll-id)
                                  (#'shanai.po.bot.vote::parse-yes-or-no-p vote))
         ("^(\\d+)\\s+(.+)$" args)
       (and trainer-id (if (eq :invalid vote)
                (reply (format nil "~A: your vote is invalid. Please say <b>yes</b> or <b>no</b>."
-                              (cl-who:escape-string user)))
+                              (cl-who:escape-string (generic:name user))))
                (if (shanai.po.bot.vote::valid-poll-id-p poll-id)
                    (progn (shanai.po.bot.vote::cast-basic-vote poll-id
-                                                               (shanai.po.client::get-trainer user con)
+                                                               user
                                                                vote)
                           (reply (format nil "Vote from ~A recieved!"
-                                         user)))
+                                         (generic:name user))))
                    (reply "Please specify an id for a valid ongoing poll!")))))))
 
 (define-bot-command poll-info (con target user args)

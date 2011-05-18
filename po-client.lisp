@@ -169,10 +169,11 @@ Messages are of the format <message length (2 octets)><message>."
 
 (defparameter *channelnames* nil)
 (defun maybe-write-username (string stream)
-  (alexandria:appendf *channelnames* (list string))
-   (when (< 19 (length *channelnames*))
-    (write-channel-message (pprint-to-string *channelnames*) stream :id +PO-shanaindigo-id+)
-    (setq *channelnames* nil)))
+  (unless *isalpha*
+    (alexandria:appendf *channelnames* (list string))
+    (when (< 19 (length *channelnames*))
+      (write-channel-message (pprint-to-string *channelnames*) stream :id +PO-shanaindigo-id+)
+      (setq *channelnames* nil))))
 
 
 (defun demo-regex (regex string)
@@ -181,16 +182,17 @@ Messages are of the format <message length (2 octets)><message>."
             string m regex)))
 
 (defun maybe-tell-about-name (name stream)
-  (or (loop for regex in (shanai.po.bot.user-warn-patterns:blacklisted-username-pattern-list)
-         do
-           (ppcre:register-groups-bind (badword) ((ppcre:create-scanner regex :case-insensitive-mode t) name)
-             (and (not (loop for s in (shanai.po.bot.user-warn-patterns:whitelisted-username-list)
-                          when (string-equal name s)
-                          return t))
-                  (write-channel-message (format nil "<b>Problematic name! <i>~A</i> contains ~A which matches regular expression: ~A</b>" (html-escape-string name)
-                                                 (html-escape-string badword)
-                                                 (html-escape-string regex)) stream :id
-                                                 (po-client:channel-id (po-client:get-channel "shanaindigo" @po-socket@))))))))
+  (unless *isalpha*
+    (or (loop for regex in (shanai.po.bot.user-warn-patterns:blacklisted-username-pattern-list)
+           do
+             (ppcre:register-groups-bind (badword) ((ppcre:create-scanner regex :case-insensitive-mode t) name)
+               (and (not (loop for s in (shanai.po.bot.user-warn-patterns:whitelisted-username-list)
+                            when (string-equal name s)
+                            return t))
+                    (write-channel-message (format nil "<b>Problematic name! <i>~A</i> contains ~A which matches regular expression: ~A</b>" (html-escape-string name)
+                                                   (html-escape-string badword)
+                                                   (html-escape-string regex)) stream :id
+                                                   (po-client:channel-id (po-client:get-channel "shanaindigo" @po-socket@)))))))))
 
 (defun log-packet (value type id)
   (if value
