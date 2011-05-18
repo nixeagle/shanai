@@ -277,7 +277,7 @@ Messages are of the format <message length (2 octets)><message>."
               (multiple-value-bind (n m) (parse-possible-user-alias (message msg))
                 m)))
       (t
-       (unless (string-equal nick "Shanai")
+       (unless (string-equal nick (name connection))
          (unless (= 0 (length  (message msg)))
            (let ((wl (handle-wikilinks (message msg)))
                  (scripts-broken (handle-broken-po-command msg)))
@@ -357,9 +357,9 @@ Messages are of the format <message length (2 octets)><message>."
                                   :channel-id (shanai.po.client::shanai-channel-id *po-socket*))
   (force-output (get-stream *po-socket*))
   (error c))
-(defun po-start-listen-loop (&key (port 5777) (host  "nixeagle.org"))
+(defun po-start-listen-loop (&key (port 5777) (host  "nixeagle.org") name)
   (bt:make-thread (lambda ()
-                    (let ((*po-socket* (connect host port :nickname "Shanai")))
+                    (let ((*po-socket* (connect host port :nickname name)))
                       (setf @po-socket@ *po-socket*)
                       (unwind-protect
                            (handler-bind ((error #'po-tell-about-error))
@@ -370,22 +370,22 @@ Messages are of the format <message length (2 octets)><message>."
                       (usocket:socket-close *po-socket*))
                     ) :name "PO Socket loop" :initial-bindings `((*standard-output* . *standard-output*))))
 (defvar @po-alpha-socket@ nil)
-(defun po-start-alpha-listen-loop (&key (port 5777) (host  "nixeagle.org"))
-  (bt:make-thread (lambda ()
-                    (let* ((*po-socket* (connect host port :nickname "Shanai"))
-                          (*isalpha* t)
-                          (global:*current-connection* *po-socket*))
-                      (setf @po-alpha-socket@ *po-socket*)
-                                        ;let ((*po-socket-recv-log* '())) (removnig let expression)
-                      (unwind-protect
-                           
-                           (progn (loop for sock = (usocket:wait-for-input *po-socket*)
-                                     while sock 
-                                     do (handle-po-message sock '()#+ () (read-po-message sock))))
-                        
-                        (usocket:socket-close *po-socket*))
-                      (usocket:socket-close *po-socket*))
-                    ) :name "PO alpha Socket loop" :initial-bindings `((*standard-output* . *standard-output*))))
+(defun po-start-alpha-listen-loop (&key (port 5777) (host  "nixeagle.org") name)
+  (let ((*po-socket* (connect host port :nickname name)))
+    (values
+     (bt:make-thread (lambda ()
+                       (let* ((*isalpha* t)
+                              (global:*current-connection* *po-socket*))
+                         (setf @po-alpha-socket@ *po-socket*)
+                         (unwind-protect
+                              (progn (loop for sock = (usocket:wait-for-input *po-socket*)
+                                        while sock 
+                                        do (handle-po-message sock '()#+ () (read-po-message sock))))
+                           (usocket:socket-close *po-socket*))
+                         (usocket:socket-close *po-socket*))
+                       ) :name "PO alpha Socket loop"
+                         :initial-bindings `((*po-socket* . ,*po-socket*)))
+     *po-socket*)))
 
 
 (defmethod print-object ((obj packet) s)
@@ -507,10 +507,14 @@ Messages are of the format <message length (2 octets)><message>."
   "Test function to log the AI in and join Shanai"
   (po-login-ai (progn (po-start-listen-loop :port 5085 :host "91.121.73.228") (sleep 3) @po-socket@)))
 
-(defun @login-alpha-test-ai ()
+(defun @login-alpha-test-ai (&key name host port)
   "Test function to log the AI in and join Shanai"
-  (po-login-ai (progn (po-start-alpha-listen-loop :port 5888 :host "nixeagle.org") (sleep 3) @po-alpha-socket@))
-  (po-proto:write-join-channel "Shanai" (get-stream @po-alpha-socket@)))
+  (multiple-value-bind (thread connection)
+      (po-start-alpha-listen-loop :port port :host host :name name)
+    (declare (ignore thread))
+    (po-login-ai connection)
+    (po-proto:write-join-channel "Shanai" (get-stream connection))
+    (force-output (get-stream connection))))
 
 (defun @debug-login-test-ai ()
   (po-login-ai (progn (let ((*po-socket* (connect "91.121.73.228" 5080 :nickname "Shanai")))
@@ -525,8 +529,8 @@ Messages are of the format <message length (2 octets)><message>."
 
 
 (defun random-change-team (con)
-  (write-change-team "Shanai" (usocket:socket-stream con)
-                     :nickname "Shanai" :info "A pokemon battle bot."
+  (write-change-team (name con) (usocket:socket-stream con)
+                     :nickname (name con) :info "A pokemon battle bot."
                      :lose ""
                      :win ""
                      :avatar 249
