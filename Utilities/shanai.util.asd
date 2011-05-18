@@ -1,5 +1,5 @@
 (asdf:defsystem :shanai.util
-  :depends-on (:alexandria)
+  :depends-on (:alexandria :cl-who)
   :components
   ((:file "packages")
    (:file "symbols" :depends-on ("packages"))
