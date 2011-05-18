@@ -313,24 +313,6 @@ Messages are of the format <message length (2 octets)><message>."
                 `(0 17 2 0 0 0 12 ,@(loop for i across (flexi-streams:string-to-octets "Shanai" :external-format :utf-16) collect i))))
 
 
-#+ () (defun po-send-string (socket string)
-  "Sends a string to the main channel.
-
-This is intended for user interaction vie the REPL more then anything
-else."
-  (let* ((len (+ 9 (* 2 (length string))))
-        (octs `(00 ,len 51 0 0 0 0 0 0 0 ,(* 2 (length string))
-                                   ,@(loop for s across string
-                                        appending (list 0 (char-code s))))))
-    (print-po-raw socket octs)
-    octs))
-
-
-
-#+ () (defun read-array-octet-string (array &key (external-format :utf-16))
-  (with-input-from-vector (s array :external-format :utf-16)
-    (read-po-octet-string s :external-format external-format)))
-
 (defmethod decode ((id (eql 45)) s &key)
   (make-instance 'channel-players-packet :channel-id (read-u4 s)
                  :contents (loop for i from 1 to (read-u4 s)
@@ -463,11 +445,6 @@ else."
     (make-instance 'trainer :user-id (read-u4 s) :name (read-po-octet-string s)
                    :info (read-po-octet-string s) :losing-msg (loop for i = (read-byte s nil) while i collect i) :winning-msg nil)))
 
-#+ () (defmethod print-object ((obj trainer) s)   ;; we have a new trainer object
-  (print-unreadable-object (obj s)
-    (format s "~A #~A ~S loss-msg: ~S win-msg: ~S"
-            (name obj) (user-id obj) (info obj)
-            (losing-msg obj) (winning-msg obj))))
 
 (defmacro with-output-to-sequence ((s) &body body)
   `(flexi-streams:with-output-to-sequence (,s)

@@ -149,6 +149,7 @@ Will stop calling rpg commands after one returns a non nil value."
 
 
 (define-command (imp "!shimp (.*)" arg) ()
+  (when (string= (name (sender)) "nixeagle"))
   (list :raw-channel-reply
         (format nil "~A" arg)))
 
