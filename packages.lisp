@@ -198,3 +198,7 @@ Pokemon Online git repository source."))
         :shanai.util :postmodern)
   (:export #:select-rpg-player-by-name))
 
+
+(defpackage #:shanai.user
+  (:nicknames :suser)
+  (:use :cl :shanai.generic :shanai.util))
