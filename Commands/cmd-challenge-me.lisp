@@ -12,7 +12,7 @@
 (defvar *current-challenger* 0
   "Who is the bot currently challenging?")
 (define-bot-command challenge-me (con target user args)
-  (when (or (string= "Shanai" (name (shanai.po.client::get-channel (object-id target) con)))
+  (when (or (string= (generic:name con) (name (shanai.po.client::get-channel (object-id target) con)))
              (string= "Hackage" (name (shanai.po.client::get-channel (object-id target) con))))
     (if *am-i-currently-battling-p*
         (po-proto:write-channel-message "Sorry I'm currently battling!"

@@ -336,7 +336,10 @@ That is the qtstring comes before the channel-id."
 
 (define-po-protocol-reader channel-message 51 (in)
   "Standard channel message."
-  (list :channel-id (read-u4 in)
+  (make-instance 'shanai.po.protocol-classes::channel-message
+                 :channel (read-u4 in)
+                 :message (shanai.binary-data:read-qtstring in))
+  #+ () (list :channel-id (read-u4 in)
         :channel-name (shanai.binary-data:read-qtstring in)))
 (defun write-channel-message (value stream &key id)
   (print-po-raw stream (encode-message (make-instance 'channel-message :channel-id id :message value))))

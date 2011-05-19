@@ -32,7 +32,8 @@ Local to each thread that is created.")
   (slot-value con 'nickname))
 ;;; should be defined elsehwere but works fine here
 (defun get-stream (thing)
-  (typecase thing
+  (s-util:ensure-stream thing)
+#+ ()  (typecase thing
     (stream thing)
     (usocket:stream-usocket (usocket:socket-stream thing))))
 

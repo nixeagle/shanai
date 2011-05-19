@@ -33,3 +33,6 @@ gamefreak pokemon generations currently known."))
 
 
 (defgeneric po-htmlize (thing &key &allow-other-keys))
+
+(defgeneric channel-id (thing))
+(defgeneric message (thing))

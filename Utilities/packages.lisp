@@ -2,4 +2,5 @@
   (:use :cl)
   (:nicknames :s-util)
   (:export #:make-keyword
-           #:esc))
+           #:esc
+           #:ensure-stream))

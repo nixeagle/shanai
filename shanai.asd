@@ -20,12 +20,13 @@
             :depends-on ("packages" "generic" "Pokemon" "global" "message")
             :components
             ((:module "Client"
-                      :depends-on ("connection" "po-battle")
+                      :depends-on ("connection" "po-battle" "protocol-classes")
                       :components
                       ((:file "client" :depends-on ())))
              (:file "trainer" :depends-on ())
              (:file "po-battle" :depends-on ("trainer"))
              (:file "import-po-pokemon-list")
+             (:file "protocol-classes")
              (:file "connection")))
    (:module "Pokemon"
             :depends-on ("packages")
@@ -55,7 +56,7 @@
              (:file "cmd-who")
              (:file "user-warn-patterns")))
    (:file "battle" :depends-on ("team" "generic"))
-   (:file "po-data-import" :depends-on ("Pokemon"))
+   (:file "po-data-import" :depends-on ("Pokemon" "config"))
    (:file "pokedex" :depends-on ("Pokemon" "po-data-import" "config"))
    (:file "po-client" :depends-on ("packages" "generic" "PO" "Pokemon" "message"))
    (:file "scratch" :depends-on ("packages" "generic" "PO" "Pokemon" "po-client"))
@@ -65,4 +66,5 @@
    (:file "shanai-simple-init" :depends-on ("movedex" "pokedex"))
    (:file "google-translate" :depends-on ("packages" "config"))
    (:file "message" :depends-on ("generic"))
+   (:file "user" :depends-on ("po-client"))
    (:file "www" :depends-on ("Pokemon" "movedex" "pokedex" "po-client"))))

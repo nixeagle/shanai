@@ -154,12 +154,12 @@
   "Hold the single battle that the AI is participating or spectating in.")
 ;;; handling battle stuff here for now
 
-(defun shanai-channel-id (&optional (con pokemon.po.client::@po-socket@))
+(defun shanai-channel-id (&optional (con (global:current-connection)))
   (po-client:channel-id (po-client:get-channel "Shanai" con)))
 
 (defun shanai-user-id (con)
   "Get my user-id"
-  (and (get-trainer  "Shanai" con) (trainer-id (get-trainer "Shanai" con))))
+  (and (get-trainer (generic:name con) con) (trainer-id (get-trainer (generic:name con) con))))
 (defun  get-stream (thing)
   (pokemon.po.client::get-stream thing))
 (defun dprint (con &rest args)
@@ -223,6 +223,7 @@ A value of 4 indicates that the move will do normal damage."
                      (if (= 486 (object-id move)) 60 1))
                   0)))
           (shanai.pokemon:pokemon-moves battle-pokemon)))
+
 (defun compute-next-pokemon-switch-scores-by-position (trainer opp-poke)
   (loop for poke across (shanai.team:team-pokemon trainer)
        if (shanai.pokemon:pokemon-koedp poke) collect 0 else 
@@ -249,12 +250,7 @@ A value of 4 indicates that the move will do normal damage."
       (unless (= (getf value :to-spot) (getf value :from-spot))
         (swap-active-team-pokes-by-id opp-team (getf value :from-spot)))
       (setf (aref opp-team (getf value :to-spot))
-            (make-opponent-battle-pokemon value))))
-
-  #+ () (dprint con "My opponent sent out this: ~A"  value)
-  #+ () (pokemon.po.client::write-battle-switch-pokemon (shanai.po.battle:battle-id battle)
-                                                           (get-stream con)
-                                                           :pokemon-slot (get-random-possible-poke-hack)) )
+            (make-opponent-battle-pokemon value)))))
 
 (defun handle-battle-finished (con value)
   "A battle finished on CON.
@@ -287,16 +283,10 @@ This does not imply the bot itself was in the battle!"
      (reinitialize-instance *current-battle*
                             :tier (nth 10 value)))
     (:rated (reinitialize-instance *current-battle* :ratedp (nth 10 value)))
-    (:spectator-chat
-     #+ () (when (equal (get-trainer (getf value :spectator-user-id 0) con)
-                  (get-trainer "nixeagle" con))
-       (let ((msg (getf value :message)))
-         (cond
-           ((string= ":attack" msg) )))))
+    (:spectator-chat)
     (:make-your-choice (handle-battle-choice con *current-battle* (getf value :battle-message-spot)))
-    (:ko (handle-battle-ko con *current-battle* (getf value :battle-message-spot))))
-  
-  )
+    (:ko (handle-battle-ko con *current-battle* (getf value :battle-message-spot)))))
+
 (defvar *pokemon-alive-p* t)
 (defvar *current-poke-slot* 0)
 (defvar *depolyed-poke-slot* 0)
@@ -426,11 +416,4 @@ trainers to participate in it."
                 (apply #'vector (getf value :team))))
         (when (eq :am-challenger me)
           (setf (shanai.team:team-pokemon (shanai.battle:battle-challenger *current-battle*))
-                (apply #'vector (getf value :team))))
-        #+ () (dprint con "~A" value)
-       #+ () (po-proto:write-channel-message "I'm in a battle! This battle's id is ~A."
-                                        (get-stream con)
-                                        :channel-id )
-       #+ () (dprint con "I'm in a battle! This battle's id is ~A." battle-id)))
-    
-   #+ () (dprint con "~A battling ~A" user1 user2)))
+                (apply #'vector (getf value :team))))))))

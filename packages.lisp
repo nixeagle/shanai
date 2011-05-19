@@ -27,7 +27,8 @@ These functions all must be implemented by various other packages.")
            #:type1
            #:type2
            #:forme-id
-           #:po-htmlize))
+           #:po-htmlize
+           #:message))
 
 (defpackage #:shanai.pokemon
   (:export :stats
@@ -201,4 +202,7 @@ Pokemon Online git repository source."))
 
 (defpackage #:shanai.user
   (:nicknames :suser)
+  (:use :cl :shanai.generic :shanai.util))
+
+(defpackage #:shanai.po.protocol-classes
   (:use :cl :shanai.generic :shanai.util))

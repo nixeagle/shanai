@@ -94,7 +94,7 @@ Messages are of the format <message length (2 octets)><message>."
 (defun get-battle-message-subtype (value)
   (nth 9 value))
 (defun handle-packet (socket value type id)
-  (log-packet value type id)
+  #+ () (log-packet value type id)
   
   (case type
     (:battle-finished (shanai.po.client::handle-battle-finished socket value))
@@ -145,7 +145,9 @@ Messages are of the format <message length (2 octets)><message>."
          (remhash (shanai.po.client::channel-name chan) (channels socket))
          (remhash id (channels socket)))))
     (:send-message
-     (shanai.po.bot::handle-send-message value))))
+     (shanai.po.bot::handle-send-message value))
+    (:channel-message
+     (handle-msg socket value))))
 
 
 
@@ -188,29 +190,20 @@ Messages are of the format <message length (2 octets)><message>."
       (let ((cmd (nth 0 po-octets)))
         (with-input-from-octet-vector (s2 po-octets)
           (case cmd
-            (#x0c (progn (client-ping socket)
-                         (when (and (not *isalpha*) (po-client:get-channel "Shanai" socket) (= 0 (mod (incf *pingcount*) 20)))
-                           (reply *po-socket* (make-instance 'channel-message :channel-id
-                                                             (po-client:channel-id (po-client:get-channel "Shanai" socket))
-                                                             :message "/players") "/players"))))
+            (#x0c (client-ping socket))
             (otherwise 
              (progn (read-u1 s2)
-                    (setq *temp* (list po-octets cmd len))
-                    (multiple-value-bind (v msgtype msgid) (funcall (protocol-handler cmd) s2)
-                      (if v (handle-packet socket  v msgtype msgid)
-                          (setq *temp* (list msgtype v))
-                          #+ () (log-packet (list (cdr po-octets)) msgtype msgid)))
-                    (handle-event socket (decode cmd (cdr po-octets)))))))))))
+                    (multiple-value-bind (v msgtype msgid)
+                        (funcall (protocol-handler cmd) s2)
+                      (when v
+                        (handle-packet socket  v msgtype msgid)))))))))))
 
 (defun reply (con target msg)
   (typecase target
-    (channel-message
-     (when (or *isalpha* (or (= (po-client:channel-id (po-client:get-channel "Shanai" con)) (channel-id target))
-                             (= (po-client:channel-id (po-client:get-channel "shanaindigo" con)) (channel-id target) (channel-id target))
-))
-       (po-proto:write-channel-message msg (get-stream con)
-                                       :channel-id (channel-id target))
-       (force-output (get-stream con))))
+    (shanai.po.protocol-classes::channel-message
+     (po-proto:write-channel-message msg (get-stream con)
+                                     :channel-id (generic:object-id target))
+     (force-output (get-stream con)))
     (private-message
      (print-po-raw con (encode-message (make-instance 'private-message :user-id (user-id target) :message msg))))))
 
@@ -257,35 +250,16 @@ Messages are of the format <message length (2 octets)><message>."
       (setq *last-time* (GET-UNIVERSAL-TIME))
       "Scripts are down. Please try again later. Abusing them may get you kicked.")))
 
-;;; Needs to eventually move somewhere else other the here.
 (defvar *shanai-channel-messages*
   (list)
   "List of channel messages recived in a specific channel.")
 
 (defmethod handle-event ((con connection) (msg channel-message))
   "Handle a message sent to us somehow :P"
-  (when (and *isalpha*
-             (eq (pokemon.po.client::channel-id msg)
-                 (po-client:channel-id (po-client:get-channel "Hackage" con))))
-    (alexandria:appendf *shanai-channel-messages*
-                        (list (message msg))))
   (multiple-value-bind (nick cmd args) (parse-possible-command (message msg))
-    (cond
-      ((string-equal (parse-possible-user-alias (message msg)) "+CountBot")
-       (reply con (make-instance 'channel-message :channel-id (po-client:channel-id (po-client:get-channel "Shanai" con))
-                                 :message "")
-              (multiple-value-bind (n m) (parse-possible-user-alias (message msg))
-                m)))
-      (t
-       (unless (string-equal nick (generic:name con))
-         (unless (= 0 (length  (message msg)))
-           (let ((wl (handle-wikilinks (message msg)))
-                 (scripts-broken (handle-broken-po-command msg)))
-             (cond  (scripts-broken (reply con msg scripts-broken))
-                    ((string= "" wl)
-                     (handle-msg con msg))
-                    (t
-                     (reply con msg wl))))))))))
+    (unless (string-equal nick (generic:name con))
+      (unless (= 0 (length  (message msg)))
+        (handle-msg con msg)))))
 
 (defmethod handle-event ((con connection) (msg private-message))
   "Handle a message sent to us somehow :P"
@@ -491,9 +465,9 @@ Messages are of the format <message length (2 octets)><message>."
   #+ () (reply con msg "Sorry I don't know about that one."))
 
 (defun handle-command% (con msg)
-  (multiple-value-bind (nick cmd args) (parse-possible-command (message msg))
+  (multiple-value-bind (nick cmd args) (parse-possible-command (generic:message msg))
     (when cmd
-      (handle-command (intern (string-upcase cmd) :keyword)
+      #+ () (handle-command (intern (string-upcase cmd) :keyword)
                       con msg)
       (if nick
           (funcall (shanai.po.bot::bot-command cmd)
@@ -532,8 +506,8 @@ Messages are of the format <message length (2 octets)><message>."
 
 
 (defun random-change-team (con)
-  (write-change-team (name con) (usocket:socket-stream con)
-                     :nickname (name con) :info "A pokemon battle bot."
+  (write-change-team (generic:name con) (usocket:socket-stream con)
+                     :nickname (generic:name con) :info "A pokemon battle bot."
                      :lose ""
                      :win ""
                      :avatar 249
