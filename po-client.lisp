@@ -88,9 +88,8 @@ Messages are of the format <message length (2 octets)><message>."
 
 (defvar *current-battle-id* 0)
 (defun handle-battle-message (con value)
-  (setq *current-battle-id* (second value))
- #+ () (write-channel-message (princ-to-string value) (usocket:socket-stream con)
-                         :id (shanai.po.client::shanai-channel-id)))
+  (setq *current-battle-id* (second value)))
+
 (defun get-battle-message-subtype (value)
   (nth 9 value))
 (defun handle-packet (socket value type id)
@@ -158,12 +157,6 @@ Messages are of the format <message length (2 octets)><message>."
     (when (< 19 (length *channelnames*))
       (write-channel-message (pprint-to-string *channelnames*) stream :id +PO-shanaindigo-id+)
       (setq *channelnames* nil))))
-
-
-(defun demo-regex (regex string)
-  (ppcre:register-groups-bind (m) ((ppcre:create-scanner regex :case-insensitive-mode t) string)
-    (format nil "~A contains ~A which matches regular expression: ~A"
-            string m regex)))
 
 (defun maybe-tell-about-name (name stream)
   (unless *isalpha*
