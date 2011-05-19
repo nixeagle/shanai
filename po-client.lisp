@@ -277,7 +277,7 @@ Messages are of the format <message length (2 octets)><message>."
               (multiple-value-bind (n m) (parse-possible-user-alias (message msg))
                 m)))
       (t
-       (unless (string-equal nick (name connection))
+       (unless (string-equal nick (generic:name con))
          (unless (= 0 (length  (message msg)))
            (let ((wl (handle-wikilinks (message msg)))
                  (scripts-broken (handle-broken-po-command msg)))
@@ -309,8 +309,10 @@ Messages are of the format <message length (2 octets)><message>."
 
 (defun po-login-ai (&optional (socket @po-socket@))
   "Log the AI bot in as user 'AI'."
-  (print-po-raw socket
-                `(0 17 2 0 0 0 12 ,@(loop for i across (flexi-streams:string-to-octets "Shanai" :external-format :utf-16) collect i))))
+  (let ((name (generic:name socket)))
+    (assert (> 255 (* 2 (length name))))
+    (print-po-raw socket
+                  `(0 ,(+ 5 (* 2 (length name))) 2 0 0 0 ,(* 2 (length name)) ,@(loop for i across (flexi-streams:string-to-octets name :external-format :utf-16) collect i)))))
 
 
 (defmethod decode ((id (eql 45)) s &key)
@@ -512,6 +514,7 @@ Messages are of the format <message length (2 octets)><message>."
   (multiple-value-bind (thread connection)
       (po-start-alpha-listen-loop :port port :host host :name name)
     (declare (ignore thread))
+    (sleep 1)
     (po-login-ai connection)
     (po-proto:write-join-channel "Shanai" (get-stream connection))
     (force-output (get-stream connection))))
