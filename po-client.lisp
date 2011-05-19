@@ -210,9 +210,8 @@ Messages are of the format <message length (2 octets)><message>."
               (subseq sequence (1+ pos)))
         (cons sequence
               nil))))
-(defvar *last-possible-command* "")
+
 (defun parse-possible-command (command-string)
-  (setf *last-possible-command* command-string)
   (cl-ppcre:register-groups-bind (nick cmd args) ("^(?:([^:]*): )?(?:,|[sS]hanai, )([^\\s]*) ?(.*)" command-string)
     (values nick cmd args)))
 
