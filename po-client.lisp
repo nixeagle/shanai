@@ -215,11 +215,6 @@ Messages are of the format <message length (2 octets)><message>."
   (cl-ppcre:register-groups-bind (nick cmd args) ("^(?:([^:]*): )?(?:,|[sS]hanai, )([^\\s]*) ?(.*)" command-string)
     (values nick cmd args)))
 
-(defun parse-possible-user-alias (string)
-  (cl-ppcre:register-groups-bind (nick rest) ("^([^:]*): (.*)" string)
-    (values nick rest)))
-
-
 (defun parse-nickname-and-message (msg)
   (if (and (find #\ (message msg)) (find #\: (message msg)))
       (if (typep msg 'private-message)
@@ -262,15 +257,6 @@ Messages are of the format <message length (2 octets)><message>."
     (print-po-raw socket
                   `(0 ,(+ 5 (* 2 (length name))) 2 0 0 0 ,(* 2 (length name)) ,@(loop for i across (flexi-streams:string-to-octets name :external-format :utf-16) collect i)))))
 
-
-(defun read-po-octet-string (stream &key (external-format :utf-16))
-  (setq *temp* (list :rpos))
-  (let ((len (read-u4 stream)))
-    (prog1 (flexi-streams:octets-to-string (loop for i from 1 to len
-                                                do       (setq *temp* (list i len))
-                                              collect (read-byte stream))
-                                           :external-format external-format))))
-
 (defvar *isalpha* nil)
 (defun pprint-to-string (thing)
   (with-output-to-string (s) (pprint thing s)))
@@ -282,6 +268,7 @@ Messages are of the format <message length (2 octets)><message>."
                                   :channel-id (shanai.po.client::shanai-channel-id *po-socket*))
   (force-output (get-stream *po-socket*))
   (error c))
+
 (defun po-start-listen-loop (&key (port 5777) (host  "nixeagle.org") name)
   (bt:make-thread (lambda ()
                     (let ((*po-socket* (connect host port :nickname name)))
@@ -384,9 +371,6 @@ Messages are of the format <message length (2 octets)><message>."
   (encode-message (make-instance 'join :user-id channel-name)))
 
 
-
-(defmethod handle-command (cmd (con connection) (msg message))
-  #+ () (reply con msg "Sorry I don't know about that one."))
 
 (defun handle-command% (con msg)
   (multiple-value-bind (nick cmd args) (parse-possible-command (generic:message msg))
