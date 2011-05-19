@@ -1,7 +1,5 @@
 (in-package :pokemon.po.client)
 
-(defmethod handle-command ((cmd (eql :help)) (con connection) (msg message))
-  nil)
 (defmethod handle-command ((cmd (eql :source)) (con connection) (msg message))
   (reply con msg "I'm licensed under the GNU GPL version 3 or later. Find me on <a href=\"http://github.com/nixeagle/shanai\">github</a>!"))
 (defmethod handle-command ((cmd (eql :forums)) (con connection) (msg message))
@@ -290,7 +288,8 @@ Format is #foobar"
 (define-bot-command config (con target user args)
   (reply "For future use to adjust configuration options."))
 
-
+(define-bot-command source (con target user args)
+   (reply  "I'm licensed under the GNU GPL version 3 or later. Find me on <a href=\"http://github.com/nixeagle/shanai\">github</a>!"))
 
 ;;; more bot command stuff
 (defun handle-send-message (value &key (con (global:current-connection)))
@@ -307,10 +306,7 @@ Format is #foobar"
               (:e (po-client:raw-notice uid cid "<i>You moved east!</i> Next should come info about the new area that you moved into!"))
               (:w (po-client:raw-notice uid cid "<i>You moved west!</i> Next should come info about the new area that you moved into!"))
 
-              #+ () (:look (po-client:raw-notice uid cid (format nil "<b>TODO, here should display information about '~A' that can be gleaned by simply obvserving it/them</b>" (cl-who:escape-string args)))
-                     (po-client:privmsg cid (format nil "/sendhtmlall <timestamp/><i>~A looks at ~A</i>"
-                                                    (cl-who:escape-string (name (get-trainer uid con)))
-                                                    (cl-who:escape-string args))))
+          
               (otherwise
                (let ((action (rpg-cmd:rpg-command-call value (get-trainer uid con)
                                                        (get-channel cid con)

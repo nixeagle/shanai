@@ -254,24 +254,6 @@ Messages are of the format <message length (2 octets)><message>."
   (list)
   "List of channel messages recived in a specific channel.")
 
-(defmethod handle-event ((con connection) (msg channel-message))
-  "Handle a message sent to us somehow :P"
-  (multiple-value-bind (nick cmd args) (parse-possible-command (message msg))
-    (unless (string-equal nick (generic:name con))
-      (unless (= 0 (length  (message msg)))
-        (handle-msg con msg)))))
-
-(defmethod handle-event ((con connection) (msg private-message))
-  "Handle a message sent to us somehow :P"
-  (handle-msg con msg))
-
-(defmethod handle-event ((socket connection) obj)
-  "anything else we get."
-  )
-(defmethod handle-event :after ((socket connection) obj)
-  (setf *po-socket-recv-log* (cons obj *po-socket-recv-log*)))
-
-
 (defun print-po-raw (socket octet-list)
   (typecase octet-list
     (list (loop for oct in octet-list
@@ -288,31 +270,6 @@ Messages are of the format <message length (2 octets)><message>."
     (print-po-raw socket
                   `(0 ,(+ 5 (* 2 (length name))) 2 0 0 0 ,(* 2 (length name)) ,@(loop for i across (flexi-streams:string-to-octets name :external-format :utf-16) collect i)))))
 
-
-(defmethod decode ((id (eql 45)) s &key)
-  (make-instance 'channel-players-packet :channel-id (read-u4 s)
-                 :contents (loop for i from 1 to (read-u4 s)
-                              collect (read-u4 s))))
-
-(defmethod decode ((id (eql 2)) connection &key len external-format)
-  #+ () (decode-message-2 len connection)
-  (cons id (apply #'vector (loop for i from 1 to (or len 0)
-                               collecting (read-byte connection)))))
-
-(defmethod decode (id stream &key len external-format)
-  (cons id (apply #'vector (loop for i from 1 to (or len 0)
-                               collecting (read-byte stream)))))
-
-(defmethod decode :around (id connection &key len (external-format :utf-16))
-  (call-next-method id connection :len len :external-format external-format))
-
-(defmethod decode :around (id (connection list) &key len (external-format :utf-16))
-  (let ((len (1- (length connection))))
-    (with-input-from-vector (s (make-array (1+ len) :element-type '(unsigned-byte 8) :initial-contents connection) :external-format external-format)
-      (decode id s :len len :external-format external-format))))
-
-(defmethod decode :around (id (con usocket:stream-usocket) &key (external-format :utf-16) len)
-  (decode id (usocket:socket-stream con) :external-format external-format :len len))
 
 (defun read-po-octet-string (stream &key (external-format :utf-16))
   (setq *temp* (list :rpos))
@@ -396,31 +353,6 @@ Messages are of the format <message length (2 octets)><message>."
   (print-unreadable-object (obj s :type t)
     (princ (name obj) s)))
 
-(defmethod decode ((id (eql 51)) s &key len)
-  (make-instance 'channel-message
-                 :channel-id (read-u4 s)
-                 :message (read-po-octet-string s)))
-(defmethod decode ((id (eql 20)) s &key len)
-  (make-instance 'private-message
-                 :user-id (read-u4 s)
-                 :message (read-po-octet-string s)))
-
-(defmethod decode ((id (eql 33)) s &key)
-  (make-instance 'server-version
-                 :version (read-po-octet-string s)))
-
-(defmethod decode ((id (eql 55)) s &key)
-  (make-instance 'server-name
-                   :name (read-po-octet-string s)))
-
-
-
-
-(defmethod decode-message-2 (len connection)
-  (let ((s connection #+ () (usocket:socket-stream connection)))
-    (make-instance 'trainer :user-id (read-u4 s) :name (read-po-octet-string s)
-                   :info (read-po-octet-string s) :losing-msg (loop for i = (read-byte s nil) while i collect i) :winning-msg nil)))
-
 
 (defmacro with-output-to-sequence ((s) &body body)
   `(flexi-streams:with-output-to-sequence (,s)
@@ -476,13 +408,6 @@ Messages are of the format <message length (2 octets)><message>."
                                                  (get-stream con) :channel-id (shanai.po.client::shanai-channel-id))
                  (force-output (get-stream con)))))))
 
-
-
-
-(defun @login-test-ai ()
-  "Test function to log the AI in and join Shanai"
-  (po-login-ai (progn (po-start-listen-loop :port 5085 :host "91.121.73.228") (sleep 3) @po-socket@)))
-
 (defun @login-alpha-test-ai (&key name host port)
   "Test function to log the AI in and join Shanai"
   (multiple-value-bind (thread connection)
@@ -492,17 +417,6 @@ Messages are of the format <message length (2 octets)><message>."
     (po-login-ai connection)
     (po-proto:write-join-channel "Shanai" (get-stream connection))
     (force-output (get-stream connection))))
-
-(defun @debug-login-test-ai ()
-  (po-login-ai (progn (let ((*po-socket* (connect "91.121.73.228" 5080 :nickname "Shanai")))
-                      (setf @po-socket@ *po-socket*
-                            *po-socket-recv-log* '()
-                            *sock-rcv-log* '())
-                      (progn (loop for sock = (usocket:wait-for-input *po-socket*)
-                                         while sock 
-                                         do (handle-po-message sock '()#+ () (read-po-message sock)))))
-                      @po-socket@)))
-
 
 
 (defun random-change-team (con)
