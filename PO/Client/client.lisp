@@ -36,6 +36,11 @@
   (write-u1 packet-id out)
   (write-u4 target out)
   (write-qtstring message out))
+(define-condition blank-message-error (error)
+  ((channel-id :initarg :channel-id :reader blank-message-error-channel-id)
+   (stream :initarg :stream :reader blank-message-error-stream)
+   (connection :initform (global:current-connection)
+               :reader blank-message-error-connection)))
 
 (defun write-channel-message (message out &key (channel-id 0))
   (declare (type (or null string) message)
@@ -43,7 +48,7 @@
            (type u1 channel-id))
   (if message
       (%write-target-message 51 out channel-id message)
-      (%write-target-message 51 out channel-id "Someone asked me to say absolutely nothing! :'( <small>Yes, this is a bug</small>")))
+      (error 'blank-message-error :stream out :channel-id channel-id)))
 
 (defun write-challenge-stuff (user stream &key (flags 0) (clauses #x00) (mode 0))
   (write-u2 11 stream)

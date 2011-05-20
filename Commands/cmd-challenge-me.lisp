@@ -31,7 +31,7 @@
                                                  user)
                                                 (shanai.po.client::get-stream con))
 )
-              (po-proto:write-channel-message (shanai.po.client::dprint con "~A: Sorry you are not in the 'Shanai Cup' tier!" user)
+              (po-proto:write-channel-message (format nil "~A: Sorry you are not in the 'Shanai Cup' tier!" (s-util:esc (generic:name user)))
                                                 (shanai.po.client::get-stream con)
                                                 :channel-id (object-id target))))))
   (force-output (pokemon.po.client::get-stream con)))
