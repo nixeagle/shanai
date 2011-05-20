@@ -30,12 +30,10 @@ Local to each thread that is created.")
 
 (defmethod generic:name ((con connection))
   (slot-value con 'nickname))
+
 ;;; should be defined elsehwere but works fine here
 (defun get-stream (thing)
-  (s-util:ensure-stream thing)
-#+ ()  (typecase thing
-    (stream thing)
-    (usocket:stream-usocket (usocket:socket-stream thing))))
+  (s-util:ensure-stream thing))
 
 (defmacro with-input-from-octet-vector ((var list) &rest body)
   (alexandria:once-only ((l list))

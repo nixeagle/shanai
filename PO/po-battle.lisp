@@ -23,7 +23,7 @@ Basically each client is assigned an ID at the start of the battle which is
 based on their 'position'. The two trainers in the pokemon battle are
 assigned slots 0 and 1 respectively. All spectators are given slot numbers
 greater then 1 in sequence."
-  (let ((us (po-client:get-trainer "Shanai" con))); Assume we are Shanai.
+  (let ((us (po-client:get-trainer (generic:name con) con))); Assume we are Shanai.
     (if (equal us (battle-challenged battle))
         0
         1)))
