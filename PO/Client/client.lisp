@@ -1,5 +1,18 @@
 (in-package :shanai.po.protocol)
 
+(define-condition blank-message-error (error)
+  ((channel-id :initarg :channel-id :reader blank-message-error-channel-id)
+   (stream :initarg :stream :reader blank-message-error-stream)
+   (connection :initform (global:current-connection)
+               :reader blank-message-error-connection)))
+
+(define-condition invalid-channel-name-error (error)
+  ((name :initarg :name :reader invalid-channel-name-error-name
+         :type 'string)
+   (connection :initform (global:current-connection)
+               :reader invalid-channel-name-error-connection
+               :initarg :connection)))
+
 (defun with-forced-output-function (thunk stream)
   "After THUNK is called, force output on STREAM."
   (declare (type function thunk)
@@ -11,18 +24,46 @@
   `(with-forced-output-function
        #'(lambda () ,@body) ,stream))
 
+(defun valid-channel-name-p (name)
+  "True if NAME is a valid PO channel name.
+
+This implies that the name does not:
+  - start with a space.
+  - completely blank
+  - contain a banned char, which is one of:
+    - ~
+    - +
+    - *"
+  (declare (type string name))
+  (not (or (string= "" name) (char= #\Space (char name 0))
+           (find #\~ name) (find #\+ name) (find #\* name))))
+(eos:test valid-channel-name-p
+  (eos:is (eq nil (valid-channel-name-p "")))
+  (eos:is (eq nil (valid-channel-name-p " ")))
+  (eos:is (eq nil (valid-channel-name-p " a")))
+  (eos:is (eq nil (valid-channel-name-p "+abc")))
+  (eos:is (eq nil (valid-channel-name-p "*abc")))
+  (eos:is (eq nil (valid-channel-name-p "ab~c")))
+  (eos:is (eq t (valid-channel-name-p "abc")))
+  (eos:is (eq t (valid-channel-name-p "abc def"))))
+
 (defun write-join-channel (channel out)
   "Join CHANNEL given as a string."
   (declare (type string channel)
            (type stream out))
-  (write-u2 (1+ (qtstring-length channel)) out) ; Size of packet
-  (write-u1 46 out)                             ; packetid
-  (write-qtstring channel out))                 ; String encoded
+  (with-yielding-restart-case (skip-join-channel () () nil)
+    (unless (valid-channel-name-p channel)
+      (error 'invalid-channel-name-error :name channel))
+    (write-u2 (1+ (qtstring-length channel)) out) ; Size of packet
+    (write-u1 46 out)                             ; packetid
+    (write-qtstring channel out)))                ; String encoded
 
 (defun write-leave-channel (channel out)
   "Part CHANNEL given as an id."
   (declare (type u4 channel)
            (type stream out))
+  (unless (valid-channel-name-p channel)
+    (error 'invalid-channel-name-error :name channel))
   (write-u2 5 out)
   (write-u1 47 out)
   (write-u4 channel out))
@@ -37,11 +78,6 @@
   (write-u4 target out)
   (write-qtstring message out))
 
-(define-condition blank-message-error (error)
-  ((channel-id :initarg :channel-id :reader blank-message-error-channel-id)
-   (stream :initarg :stream :reader blank-message-error-stream)
-   (connection :initform (global:current-connection)
-               :reader blank-message-error-connection)))
 
 (defun write-channel-message (message out &key (channel-id 0))
   (declare (type (or null string) message)
@@ -393,31 +429,33 @@ trainers to participate in it."
         (user1 (get-trainer (nth 3 value) con))
         (user2 (get-trainer (nth 5 value) con)))
     (unless (and user1 #+ () user2)
-      (let ((me (getf value :me)))
-        (setq *current-engage-battle* value
-              *pokemon-alive-p* t
-              *koedp* nil
-              *depolyed-poke-slot* 0
-              *i-wanna-switch-p* nil
-              *possible-pokes* (list 1 2 3 4 5))
-        (setq *current-poke-slot* 0)
-        (let ((challenger (get-trainer (getf value :challenger) con))
-              (challenged (get-trainer (getf value :challenged) con)))
-          (setq *current-battle*
-                (make-instance 'shanai.po.battle:battle
-                               :id (getf value :battle-id)
-                               :in-progress-p t
-                               :challenged (create-battle-trainer challenged)
-                               
-                               :challenger (create-battle-trainer challenger)
-                               
-                               :clauses (getf value :clauses)
-                               :spectatingp nil
-                               :spectators ()
-                               :gen (getf value :gen))))
-        (when (eq :am-challenged me)
-          (setf (shanai.team:team-pokemon (shanai.battle:battle-challenged *current-battle*))
-                (apply #'vector (getf value :team))))
-        (when (eq :am-challenger me)
-          (setf (shanai.team:team-pokemon (shanai.battle:battle-challenger *current-battle*))
-                (apply #'vector (getf value :team))))))))
+      (when (and (member :challenger value)
+                 (member :challenged value))
+        (let ((me (getf value :me)))
+          (setq *current-engage-battle* value
+                *pokemon-alive-p* t
+                *koedp* nil
+                *depolyed-poke-slot* 0
+                *i-wanna-switch-p* nil
+                *possible-pokes* (list 1 2 3 4 5))
+          (setq *current-poke-slot* 0)
+          (let ((challenger (get-trainer (getf value :challenger) con))
+                (challenged (get-trainer (getf value :challenged) con)))
+            (setq *current-battle*
+                  (make-instance 'shanai.po.battle:battle
+                                 :id (getf value :battle-id)
+                                 :in-progress-p t
+                                 :challenged (create-battle-trainer challenged)
+                                 
+                                 :challenger (create-battle-trainer challenger)
+                                 
+                                 :clauses (getf value :clauses)
+                                 :spectatingp nil
+                                 :spectators ()
+                                 :gen (getf value :gen))))
+          (when (eq :am-challenged me)
+            (setf (shanai.team:team-pokemon (shanai.battle:battle-challenged *current-battle*))
+                  (apply #'vector (getf value :team))))
+          (when (eq :am-challenger me)
+            (setf (shanai.team:team-pokemon (shanai.battle:battle-challenger *current-battle*))
+                  (apply #'vector (getf value :team)))))))))

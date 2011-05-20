@@ -3,4 +3,5 @@
   (:nicknames :s-util)
   (:export #:make-keyword
            #:esc
-           #:ensure-stream))
+           #:ensure-stream
+           #:with-yielding-restart-case))
