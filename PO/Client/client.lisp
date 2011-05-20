@@ -330,12 +330,9 @@ This does not imply the bot itself was in the battle!"
 (defvar *current-poke-slot* 0)
 (defvar *depolyed-poke-slot* 0)
 (defvar *choice-made* nil)
-(defvar *koedp* nil)
 (defvar *possible-pokes*
   '(1 2 3 4 5))
 (defvar *i-wanna-switch-p* nil)
-(defun get-random-possible-poke-hack ()
-  (alexandria:random-elt *possible-pokes*))
 
 (defun get-active-pokemon (trainer)
   "Get the current active pokemon of TRAINER."
@@ -353,14 +350,14 @@ This does not imply the bot itself was in the battle!"
    (loop for p across (shanai.team:team-pokemon team)
       unless (shanai.pokemon:pokemon-koedp p)
       collect p)))
-(defun position-of-pokemon-in-team (poke team)
-  (position poke (shanai.team:team-pokemon team)))
+
 
 (defun handle-battle-choice (con battle spot)
   (let* ((me (generic:challenger battle))
-        (my-team (shanai.team:team-pokemon me)))
-    (if *koedp*
-        (progn (setq *koedp* nil)
+         (my-team (shanai.team:team-pokemon me))
+         (koedp (shanai.pokemon:pokemon-koedp (get-active-pokemon (challenger battle)))))
+    (if koedp
+        (progn 
                (let ((deploypoke (select-poke battle (challenger battle)
                                     (get-active-pokemon (challenged battle)))))
                  (swap-active-team-pokes-by-id my-team deploypoke)
@@ -403,15 +400,11 @@ This does not imply the bot itself was in the battle!"
     (position (loop for move in scored-poke
                  maximizing (or move 0))
               scored-poke)))
-(defun get-current-pokemon-slot-id (battle)
-  (declare (ignore battle))             ; Right now just hacking this!
-  *current-poke-slot*)
+
 (defun handle-battle-ko (con battle spot-id)
   (case spot-id
     (0 (shanai.pokemon:!mark-koed (get-active-pokemon (generic:challenger battle))))
-    (1 (shanai.pokemon:!mark-koed (get-active-pokemon (generic:challenged battle)))))
-  (when (= spot-id (get-opponent-battle-slot-id battle con))
-    (setq *koedp* t)))
+    (1 (shanai.pokemon:!mark-koed (get-active-pokemon (generic:challenged battle))))))
 
 (defun create-battle-trainer (trainer)
   "Create a trainer suited for battle.
@@ -433,7 +426,6 @@ trainers to participate in it."
         (let ((me (getf value :me)))
           (setq *current-engage-battle* value
                 *pokemon-alive-p* t
-                *koedp* nil
                 *depolyed-poke-slot* 0
                 *i-wanna-switch-p* nil
                 *possible-pokes* (list 1 2 3 4 5))
