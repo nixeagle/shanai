@@ -51,9 +51,10 @@ This implies that the name does not:
   "Join CHANNEL given as a string."
   (declare (type string channel)
            (type stream out))
-  (with-yielding-restart-case (skip-join-channel () () nil)
-    (unless (valid-channel-name-p channel)
-      (error 'invalid-channel-name-error :name channel))
+  (block :outer
+    (with-yielding-restart-case (skip-join-channel () () (return-from :outer))
+      (unless (valid-channel-name-p channel)
+        (error 'invalid-channel-name-error :name channel)))
     (write-u2 (1+ (qtstring-length channel)) out) ; Size of packet
     (write-u1 46 out)                             ; packetid
     (write-qtstring channel out)))                ; String encoded
@@ -62,8 +63,6 @@ This implies that the name does not:
   "Part CHANNEL given as an id."
   (declare (type u4 channel)
            (type stream out))
-  (unless (valid-channel-name-p channel)
-    (error 'invalid-channel-name-error :name channel))
   (write-u2 5 out)
   (write-u1 47 out)
   (write-u4 channel out))
@@ -96,8 +95,6 @@ This implies that the name does not:
   (write-u4 user stream)
   (write-u4 clauses stream)
   (write-u1 mode stream))
-
-
 
 (defun write-battle-switch-pokemon (battle-id stream &key
                                     pokemon-slot)
@@ -136,12 +133,12 @@ This implies that the name does not:
   (:documentation "Write MESSAGE to TARGET over CON."))
 
 (defmethod privmsg ((target channel) (msg string) &key (con pokemon.po.client::*po-socket*))
-  (po-proto:write-channel-message msg (get-stream con)
+  (po-proto:write-channel-message msg (s-util:ensure-stream con)
                                   :channel-id (object-id target)))
 
 (defmethod privmsg ((target pokemon.po.client::channel-message) (msg string)
                     &key (con pokemon.po.client::*po-socket*))
-  (po-proto:write-channel-message msg (get-stream con)
+  (po-proto:write-channel-message msg (s-util:ensure-stream con)
                                   :channel-id (object-id target)))
 
 (defmethod privmsg ((name string) (msg string) &key (con pokemon.po.client::*po-socket*)
@@ -152,12 +149,12 @@ This implies that the name does not:
 (defmethod privmsg ((id integer) (msg string) &key (con (global:current-connection))
                     (target :channel))
   (case target
-    (:channel (po-proto:write-channel-message msg (get-stream con) :channel-id id))))
+    (:channel (po-proto:write-channel-message msg (s-util:ensure-stream con) :channel-id id))))
 
 (defmethod privmsg :after (target msg &key (con pokemon.po.client::*po-socket*))
   "After writing a message, we want to flush the stream."
   (declare (ignore target msg))
-  (force-output (get-stream con)))
+  (force-output (s-util:ensure-stream con)))
 
 
 (defgeneric notice (destination message &key con target &allow-other-keys))
@@ -203,7 +200,9 @@ This implies that the name does not:
 
 (defun shanai-user-id (con)
   "Get my user-id"
-  (and (get-trainer (generic:name con) con) (trainer-id (get-trainer (generic:name con) con))))
+  (and (get-trainer (generic:name con) con)
+       (trainer-id (get-trainer (generic:name con) con))))
+
 (defun  get-stream (thing)
   (pokemon.po.client::get-stream thing))
 
@@ -366,7 +365,7 @@ This does not imply the bot itself was in the battle!"
                                     (get-active-pokemon (challenged battle)))))
                  (swap-active-team-pokes-by-id my-team deploypoke)
                  (po-proto::write-battle-switch-pokemon (shanai.po.battle:battle-id battle)
-                                                        (get-stream con)
+                                                        (s-util:ensure-stream con)
                                                         :pokemon-slot deploypoke)))
         (if (and (< 1 (length my-team)) #+ () *i-wanna-switch-p*)
             (progn
@@ -374,7 +373,7 @@ This does not imply the bot itself was in the battle!"
                                     (get-active-pokemon (challenged battle)))))
                 (if (= r 0)
                     (pokemon.po.client::write-battle-use-attack
-                     (shanai.po.battle:battle-id battle) (get-stream con)
+                     (shanai.po.battle:battle-id battle) (s-util:ensure-stream con)
                      :attack-slot (select-attack battle
                                          (get-active-pokemon (challenger battle))
                                         (get-active-pokemon (challenged battle)))
@@ -382,10 +381,10 @@ This does not imply the bot itself was in the battle!"
                     (progn (setq *i-wanna-switch-p* nil)
                            (swap-active-team-pokes-by-id my-team r)
                            (po-proto::write-battle-switch-pokemon (shanai.po.battle:battle-id battle)
-                                                                  (get-stream con)
+                                                                  (s-util:ensure-stream con)
                                                                   :pokemon-slot r)))))
             (pokemon.po.client::write-battle-use-attack
-             (shanai.po.battle:battle-id battle) (get-stream con)
+             (shanai.po.battle:battle-id battle) (s-util:ensure-stream con)
              :attack-slot (select-attack battle
                                          (get-active-pokemon (challenger battle))
                                          (get-active-pokemon (challenged battle)))
