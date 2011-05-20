@@ -24,7 +24,7 @@
                 (setq *am-i-currently-battling-p* t
                       *current-challenger* user)
                 (pokemon.po.client::random-change-team con)
-                (po-proto:write-channel-message (format nil "I challenged ~A" (s-util:esc user))
+                (po-proto:write-channel-message (s-util:esc (format nil "I challenged ~A" user))
                                                 (shanai.po.client::get-stream con)
                                                 :channel-id (object-id target))
                 (po-proto:write-challenge-stuff (object-id
