@@ -36,6 +36,7 @@
   (write-u1 packet-id out)
   (write-u4 target out)
   (write-qtstring message out))
+
 (define-condition blank-message-error (error)
   ((channel-id :initarg :channel-id :reader blank-message-error-channel-id)
    (stream :initarg :stream :reader blank-message-error-stream)
@@ -48,7 +49,9 @@
            (type u1 channel-id))
   (if message
       (%write-target-message 51 out channel-id message)
-      (error 'blank-message-error :stream out :channel-id channel-id)))
+      (restart-case
+          (error 'blank-message-error :stream out :channel-id channel-id)
+        (skip-write-channel-message () nil))))
 
 (defun write-challenge-stuff (user stream &key (flags 0) (clauses #x00) (mode 0))
   (write-u2 11 stream)
@@ -167,11 +170,7 @@
   (and (get-trainer (generic:name con) con) (trainer-id (get-trainer (generic:name con) con))))
 (defun  get-stream (thing)
   (pokemon.po.client::get-stream thing))
-(defun dprint (con &rest args)
-  (let ((cs (get-stream con)))
-    (po-proto:write-channel-message (cl-who:escape-string (apply #'format nil args))
-                                    cs :channel-id (shanai-channel-id con))
-    (force-output cs)))
+
 (defun get-my-battle-slot-id (battle con)
   (shanai.po.battle::get-client-battle-slot-id battle con))
 (defun get-opponent-battle-slot-id (battle con)
@@ -342,7 +341,7 @@ This does not imply the bot itself was in the battle!"
                      (shanai.po.battle:battle-id battle) (get-stream con)
                      :attack-slot (select-attack battle
                                          (get-active-pokemon (challenger battle))
-                                         (get-active-pokemon (challenged battle)))
+                                        (get-active-pokemon (challenged battle)))
                      :attack-target (get-opponent-battle-slot-id battle con))
                     (progn (setq *i-wanna-switch-p* nil)
                            (swap-active-team-pokes-by-id my-team r)
