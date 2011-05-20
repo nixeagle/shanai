@@ -338,11 +338,7 @@ That is the qtstring comes before the channel-id."
   "Standard channel message."
   (make-instance 'shanai.po.protocol-classes::channel-message
                  :channel (read-u4 in)
-                 :message (shanai.binary-data:read-qtstring in))
-  #+ () (list :channel-id (read-u4 in)
-        :channel-name (shanai.binary-data:read-qtstring in)))
-(defun write-channel-message (value stream &key id)
-  (print-po-raw stream (encode-message (make-instance 'channel-message :channel-id id :message value))))
+                 :message (shanai.binary-data:read-qtstring in)))
 
 (define-po-protocol-reader chan-name-change 52 (in)
   "Sent when the server changes the name of the main channel.

@@ -83,7 +83,7 @@ Messages are of the format <message length (2 octets)><message>."
 (defvar *sock-rcv-log* nil)
 
 (defun demo-find-battle ()
-  (write-channel-message "I'm looking for an <b>unrated</b> <i>Shanai Cup</i> battle! Please hit the <b>find-battle</b>!" (usocket:socket-stream @po-socket@) :id (po-client:channel-id (po-client:get-channel "Shanai" @po-socket@)))
+  (shanai.po.client:privmsg "Shanai" "I'm looking for an <b>unrated</b> <i>Shanai Cup</i> battle! Please hit the <b>find-battle</b>!")
   (write-find-battle nil (usocket:socket-stream @po-socket@)))
 
 (defvar *current-battle-id* 0)
@@ -151,12 +151,6 @@ Messages are of the format <message length (2 octets)><message>."
 
 
 (defparameter *channelnames* nil)
-(defun maybe-write-username (string stream)
-  (unless *isalpha*
-    (alexandria:appendf *channelnames* (list string))
-    (when (< 19 (length *channelnames*))
-      (write-channel-message (pprint-to-string *channelnames*) stream :id +PO-shanaindigo-id+)
-      (setq *channelnames* nil))))
 
 (defun maybe-tell-about-name (name stream)
   (unless *isalpha*
@@ -166,10 +160,10 @@ Messages are of the format <message length (2 octets)><message>."
                (and (not (loop for s in (shanai.po.bot.user-warn-patterns:whitelisted-username-list)
                             when (string-equal name s)
                             return t))
-                    (write-channel-message (format nil "<b>Problematic name! <i>~A</i> contains ~A which matches regular expression: ~A</b>" (html-escape-string name)
+                    (shanai.po.client:privmsg "shanaindigo"
+                                              (format nil "<b>Problematic name! <i>~A</i> contains ~A which matches regular expression: ~A</b>" (html-escape-string name)
                                                    (html-escape-string badword)
-                                                   (html-escape-string regex)) stream :id
-                                                   (po-client:channel-id (po-client:get-channel "shanaindigo" @po-socket@)))))))))
+                                                   (html-escape-string regex)))))))))
 
 (defun log-packet (value type id)
   (if value
@@ -269,7 +263,7 @@ Messages are of the format <message length (2 octets)><message>."
   (force-output (get-stream *po-socket*))
   (error c))
 
-(defun po-start-listen-loop (&key (port 5777) (host  "nixeagle.org") name)
+(defun po-start-listen-loop (&key (port 5777) (host  "nixeagle.org") (name "Shanai"))
   (bt:make-thread (lambda ()
                     (let ((*po-socket* (connect host port :nickname name)))
                       (setf @po-socket@ *po-socket*)
@@ -367,22 +361,20 @@ Messages are of the format <message length (2 octets)><message>."
 (defmethod sizeof ((obj server-name))
   (+ 5 (flexi-streams:octet-length (name obj) :external-format :utf-16)))
 
-(defun encode-join (channel-name)
-  (encode-message (make-instance 'join :user-id channel-name)))
-
-
-
 (defun handle-command% (con msg)
   (multiple-value-bind (nick cmd args) (parse-possible-command (generic:message msg))
     (when cmd
-      #+ () (handle-command (intern (string-upcase cmd) :keyword)
-                      con msg)
       (if nick
           (funcall (shanai.po.bot::bot-command cmd)
                    con msg (shanai.po.client:get-trainer nick con) args)
           (progn (po-proto:write-channel-message (cl-who:escape-string (format nil "Attempted command by private message from: ~A." (shanai.po.client:get-trainer (user-id msg)  *po-socket*)))
                                                  (get-stream con) :channel-id (shanai.po.client::shanai-channel-id))
                  (force-output (get-stream con)))))))
+
+
+(defun @login-test-ai ()
+  "Test function to log the AI in and join Shanai"
+  (po-login-ai (progn (po-start-listen-loop :port 5080 :host "91.121.73.228") (sleep 3) @po-socket@)))
 
 (defun @login-alpha-test-ai (&key name host port)
   "Test function to log the AI in and join Shanai"

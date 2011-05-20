@@ -6,7 +6,7 @@
 ;;; Additionally note that there is no checking that the username is valid.
 ;;; No way to remove a username from the whitelist through this interface.
 (define-bot-command username-whitelist (con target user args)
-  (when (= (po-client:channel-id (po-client:get-channel "shanaindigo" con)) (pokemon.po.client::channel-id target))
+  (when (= (po-client:channel-id (po-client:get-channel "shanaindigo" con)) (generic:object-id target))
     (shanai.po.bot.user-warn-patterns:whitelist-username args)
     (reply (format nil "I have whitelisted ~S" (cl-who:escape-string args)))))
 

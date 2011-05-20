@@ -8,8 +8,10 @@
 
 (defun select-rpg-player-by-name (name)
   (declare (type string name))
-  (query (sql (:select '* :from 'rpg.players :where (:= 'name name)))
-         :plist))
+  (when (and *database* 
+              (postmodern:CONNECTED-P  *database*))
+    (query (sql (:select '* :from 'rpg.players :where (:= 'name name)))
+           :plist)))
 
 (defun select-rpg-player-by-id (id)
   (declare (type alexandria:non-negative-fixnum id))
