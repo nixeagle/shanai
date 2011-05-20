@@ -8,7 +8,6 @@
                                            :port port
                                            :host host))
 
-
 (defun demo-regex (regex string)
   "Given a REGEX and a STRING return all matches."
   (ppcre:register-groups-bind (m) ((ppcre:create-scanner regex :case-insensitive-mode t) string)
