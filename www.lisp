@@ -1,6 +1,6 @@
 ;;; file containing all of our web stuff
 (in-package :cl-user)
-(defvar *acceptor888* (make-instance 'hunchentoot:acceptor :port 7777))
+(defvar *acceptor888* (make-instance 'hunchentoot:acceptor :port 8888))
 
 (hunchentoot:start *acceptor888*)
 

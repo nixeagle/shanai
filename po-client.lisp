@@ -144,7 +144,7 @@ Messages are of the format <message length (2 octets)><message>."
          (remhash (shanai.po.client::channel-name chan) (channels socket))
          (remhash id (channels socket)))))
     (:send-message
-     (shanai.po.bot::handle-send-message value))
+     (shanai.po.bot::handle-send-message value :con socket))
     (:channel-message
      (handle-msg socket value))))
 
@@ -197,6 +197,7 @@ Messages are of the format <message length (2 octets)><message>."
 (defun handle-msg (con msg)
   (handle-command% con msg))
 
+#+ ()
 (defun split-at-first (item sequence)
   (let ((pos (position item sequence)))
     (if pos
@@ -221,7 +222,8 @@ Messages are of the format <message length (2 octets)><message>."
 
 
 (defvar *last-time* (GET-UNIVERSAL-TIME))
-(defun handle-broken-po-command (message)
+
+#+ () (defun handle-broken-po-command (message)
   (let ((cmd (cdr (parse-nickname-and-message message))))
     (when (and (or (char= (aref cmd 0) #\/)
                    (char= (aref cmd 0) #\!))
@@ -265,7 +267,8 @@ Messages are of the format <message length (2 octets)><message>."
 
 (defun po-start-listen-loop (&key (port 5777) (host  "nixeagle.org") (name "Shanai"))
   (bt:make-thread (lambda ()
-                    (let ((*po-socket* (connect host port :nickname name)))
+                    (let* ((*po-socket* (connect host port :nickname name))
+                          (global:*current-connection* *po-socket*))
                       (setf @po-socket@ *po-socket*)
                       (unwind-protect
                            (handler-bind ((error #'po-tell-about-error))
@@ -365,8 +368,9 @@ Messages are of the format <message length (2 octets)><message>."
   (multiple-value-bind (nick cmd args) (parse-possible-command (generic:message msg))
     (when cmd
       (if nick
-          (funcall (shanai.po.bot::bot-command cmd)
-                   con msg (shanai.po.client:get-trainer nick con) args)
+          (when (not (shanai.po.client:channel-equal (generic:object-id msg) "Tohjo Falls"))
+            (funcall (shanai.po.bot::bot-command cmd)
+                     con msg (shanai.po.client:get-trainer nick con) args))
           (progn (po-proto:write-channel-message (cl-who:escape-string (format nil "Attempted command by private message from: ~A." (shanai.po.client:get-trainer (user-id msg)  *po-socket*)))
                                                  (get-stream con) :channel-id (shanai.po.client::shanai-channel-id))
                  (force-output (get-stream con)))))))

@@ -52,9 +52,11 @@ This implies that the name does not:
   (declare (type string channel)
            (type stream out))
   (block :outer
-    (with-yielding-restart-case (skip-join-channel () () (return-from :outer))
-      (unless (valid-channel-name-p channel)
+    #+ () (with-yielding-restart-case (skip-join-channel () () (return-from :outer))
+            (unless (valid-channel-name-p channel)
         (error 'invalid-channel-name-error :name channel)))
+    #+ () (unless (valid-channel-name-p channel)
+      (error 'invalid-channel-name-error :name channel))
     (write-u2 (1+ (qtstring-length channel)) out) ; Size of packet
     (write-u1 46 out)                             ; packetid
     (write-qtstring channel out)))                ; String encoded
@@ -166,10 +168,7 @@ This implies that the name does not:
 
 (defmethod raw-notice ((user string) destination (message string)
                        &key (con (global:current-connection)) &allow-other-keys)
-  (privmsg destination (format nil "/sendhtmlmessage ~A:::~A"
-                               user
-                               message)
-           :target :channel :con con))
+  )
 
 (defmethod raw-notice ((user integer) destination (message string)
                        &key (con (global:current-connection)) &allow-other-keys)
@@ -264,21 +263,28 @@ A value of 4 indicates that the move will do normal damage."
           (shanai.pokemon:pokemon-moves battle-pokemon)))
 
 (defun compute-next-pokemon-switch-scores-by-position (trainer opp-poke)
-  (loop for poke across (shanai.team:team-pokemon trainer)
-       if (shanai.pokemon:pokemon-koedp poke) collect 0 else 
-       collect (loop for i in (compute-move-scores-by-position poke opp-poke)
-               for defense =
-                    (shanai.pokemon.type::type-matchup (type1 opp-poke)
-                                                       (type1 poke)
-                                                       (type2 poke))
-                  for defense2 = (shanai.pokemon.type::type-matchup (type2 opp-poke)
-                                                                    (type1 poke)
-                                                                    (type2 poke))
-                  for mindef = (max defense defense2) 
-                  maximizing (/ (/ i (if (= mindef 0) 1/8 mindef))
-                                (if (< 0 i)
-                                    5/3
-                                    1)))))
+  (let ((l (loop for poke across (shanai.team:team-pokemon trainer)
+              if (shanai.pokemon:pokemon-koedp poke) collect 0 else 
+              collect (loop for i in (compute-move-scores-by-position poke opp-poke)
+                         for defense =
+                           (shanai.pokemon.type::type-matchup (type1 opp-poke)
+                                                              (type1 poke)
+                                                              (type2 poke))
+                         for defense2 = (shanai.pokemon.type::type-matchup (type2 opp-poke)
+                                                                           (type1 poke)
+                                                                           (type2 poke))
+                         for mindef = (max defense defense2) 
+                         maximizing (* (let ((n (/ (sqrt (shanai.pokemon:pokemon-current-hp poke))
+                                                   2)))
+                                         (if (> 2 n)
+                                             1
+                                             (1- n)))
+                                       (/ (/ i (if (= mindef 0) 1/8 mindef))
+                                          (if (< 0 i)
+                                              5/3
+                                              1)))))))
+    (setf (car l) (* (car l) 1.3))
+    l))
 
 (defun handle-sendout (con battle value)
   (if (and (= (getf value :battle-message-spot) (get-my-battle-slot-id battle con))
@@ -311,7 +317,16 @@ This does not imply the bot itself was in the battle!"
         (setq shanai.po.bot::*am-i-currently-battling-p* nil)))))
 (defun handle-battle-event (con value type id)
   (declare (ignore id))
+#+ ()  (print (cons type value))
   (case type
+    (:straight-damage
+#+ ()     (print (cons type value)))
+    (:change-hp
+     (let ((hp (getf value :hp)))
+       (when (= (getf value :battle-message-spot) 0)
+         (setf (shanai.pokemon:pokemon-current-hp
+                (get-active-pokemon (challenger *current-battle*)))
+               hp))))
     (:begin-turn (setq *choice-made* nil)
                  (shanai.battle::!incf-turn *current-battle*))
     (:send-out (handle-sendout con *current-battle* value))

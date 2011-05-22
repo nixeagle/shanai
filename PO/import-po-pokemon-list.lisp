@@ -34,7 +34,7 @@
 
 (defparameter +importable-teams+
   (list
-   "Axew (M) @ Potion
+#+ ()   "Axew (M) @ Potion
 Trait: Mold Breaker
 EVs: 32 HP / 60 Atk / 196 SAtk / 220 Spd
 Naive Nature (+Spd, -SDef)

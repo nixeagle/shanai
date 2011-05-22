@@ -154,3 +154,7 @@ Will stop calling rpg commands after one returns a non nil value."
         (format nil "~A" arg)))
 
 
+(define-command (po-help "\\|help") ()
+  (print "hi")
+  (list :raw-notice-reply
+        (format nil "<timestamp/>Shanai: Sorry no help!")))
