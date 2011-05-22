@@ -49,6 +49,7 @@
              (:file "cmd-cmdtest")
              (:file "cmd-movedex")
              (:file "cmd-pokedex")
+             (:file "cmd-suggestion-box")
              (:file "cmd-homepage")
              (:file "cmd-shanai-cup")
              (:file "cmd-username-whitelist")
