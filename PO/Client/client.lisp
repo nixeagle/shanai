@@ -188,6 +188,10 @@ This implies that the name does not:
   (channel-equal chan2 (get-channel chan1 con)))
 (defmethod channel-equal ((chan1 pokemon.po.client::channel-message) chan2 &key con)
   (channel-equal chan2 (get-channel (object-id chan1) con)))
+(defmethod channel-equal ((chan1 shanai.po.protocol-classes::channel-message)
+                          chan2 &key con)
+  (channel-equal chan2 (object-id chan1) :con con))
+
 (defvar *current-engage-battle* nil)
 
 (defvar *current-battle* nil
