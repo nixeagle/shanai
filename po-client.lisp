@@ -378,7 +378,7 @@ Messages are of the format <message length (2 octets)><message>."
 
 (defun @login-test-ai ()
   "Test function to log the AI in and join Shanai"
-  (po-login-ai (progn (po-start-listen-loop :port 5080 :host "91.121.73.228") (sleep 3) @po-socket@)))
+  (po-login-ai (progn (po-start-listen-loop :port 5080 :host "188.165.249.120") (sleep 3) @po-socket@)))
 
 (defun @login-alpha-test-ai (&key name host port)
   "Test function to log the AI in and join Shanai"
