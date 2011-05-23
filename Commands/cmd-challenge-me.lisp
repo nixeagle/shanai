@@ -18,16 +18,15 @@
     (if (bot-currently-battling-p con)
         (privmsg target "Sorry I'm currently battling!"
                  :con con)
-        (progn
-          (if (string= "Shanai Cup" (tier user))
-              (progn
-                (setq *am-i-currently-battling-p* t
-                      *current-challenger* user)
-                (pokemon.po.client::random-change-team con)
-                (privmsg target (s-util:esc (format nil "I challenged ~A"
-                                                    (name user)))
-                         :con con)
-                (po-proto:write-challenge-stuff (object-id user)
-                                                (s-util:ensure-stream con)))
-              (privmsg target (format nil "~A: Sorry you are not in the 'Shanai Cup' tier!" (s-util:esc (generic:name user))) :con con)))))
+        (if (string= "Shanai Cup" (tier user))
+            (progn
+              (setq *am-i-currently-battling-p* t
+                    *current-challenger* user)
+              (pokemon.po.client::random-change-team con)
+              (privmsg target (s-util:esc (format nil "I challenged ~A"
+                                                  (name user)))
+                       :con con)
+              (po-proto:write-challenge-stuff (object-id user)
+                                              (s-util:ensure-stream con)))
+            (privmsg target (format nil "~A: Sorry you are not in the 'Shanai Cup' tier!" (s-util:esc (generic:name user))) :con con))))
   (force-output (s-util:ensure-stream con)))
