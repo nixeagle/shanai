@@ -143,6 +143,11 @@ This implies that the name does not:
   (po-proto:write-channel-message msg (s-util:ensure-stream con)
                                   :channel-id (object-id target)))
 
+(defmethod privmsg ((target shanai.po.protocol-classes::channel-message) (msg string)
+                    &key (con pokemon.po.client::*po-socket*))
+  (po-proto:write-channel-message msg (s-util:ensure-stream con)
+                                  :channel-id (object-id target)))
+
 (defmethod privmsg ((name string) (msg string) &key (con pokemon.po.client::*po-socket*)
                     (target :channel))
   (case target
@@ -192,6 +197,11 @@ This implies that the name does not:
                           chan2 &key con)
   (channel-equal chan2 (object-id chan1) :con con))
 
+(defun find-move (name-or-id)
+  (pokemon::find-move name-or-id))
+(defun find-pokemon (name-or-id)
+  (gethash name-or-id pokemon::*pokedex*))
+
 (defvar *current-engage-battle* nil)
 
 (defvar *current-battle* nil
@@ -206,9 +216,6 @@ This implies that the name does not:
   (and (get-trainer (generic:name con) con)
        (trainer-id (get-trainer (generic:name con) con))))
 
-(defun  get-stream (thing)
-  (pokemon.po.client::get-stream thing))
-
 (defun get-my-battle-slot-id (battle con)
   (shanai.po.battle::get-client-battle-slot-id battle con))
 (defun get-opponent-battle-slot-id (battle con)
@@ -218,7 +225,7 @@ This implies that the name does not:
   "Given a list construct the opponent's battle pokemon."
   (let ((pid (getf lst :pokemon-id))
         (formeid (getf lst :forme-id)))
-    (let ((dpoke (gethash pid pokemon::*pokedex*)))
+    (let ((dpoke (find-pokemon pid)))
       (make-instance 'shanai.pokemon:battle-pokemon
                      :id pid
                      :forme formeid
@@ -228,11 +235,6 @@ This implies that the name does not:
                      :current-hp (getf lst :percent-health)
                      :level (getf lst :level)))))
 
-
-(defun find-move (name-or-id)
-  (pokemon::find-move name-or-id))
-(defun find-pokemon (name-or-id)
-  (gethash name-or-id pokemon::*pokedex*))
 
 (defun score-move-on-pokemon (move opp-poke)
   "Indicate how powerful MOVE will be on OPP-POKE.
@@ -245,7 +247,8 @@ A value of 4 indicates that the move will do normal damage."
                 (list (find-move (getf move :movenum)))
                 (fixnum (find-move move)))))
     (when move
-      (shanai.pokemon.type::type-matchup (type1 move) (type1 opp-poke) (type2 opp-poke)))))
+      (shanai.pokemon.type::type-matchup (type1 move) (type1 opp-poke)
+                                         (type2 opp-poke)))))
 
 (defun stabp (move pokemon)
   "Does MOVE do 1.5x damage when used by POKEMON?"
@@ -291,9 +294,8 @@ A value of 4 indicates that the move will do normal damage."
     l))
 
 (defun handle-sendout (con battle value)
-  (if (and (= (getf value :battle-message-spot) (get-my-battle-slot-id battle con))
-             (not (= 0 (getf value :from-spot))))
-      (setq *i-wanna-switch-p* t))
+#+ ()  (if (and (= (getf value :battle-message-spot) (get-my-battle-slot-id battle con))
+             (not (= 0 (getf value :from-spot)))))
   (when (= (getf value :battle-message-spot) (get-my-battle-slot-id battle con))
     (let ((opp-team (shanai.team:team-pokemon (generic:challenged battle))))
       (unless (= (getf value :to-spot) (getf value :from-spot))
@@ -317,8 +319,9 @@ This does not imply the bot itself was in the battle!"
   (when shanai.po.bot::*am-i-currently-battling-p*
     (when (equal (generic:object-id shanai.po.bot::*current-challenger*)
                  (generic:object-id (get-trainer (nth 1 value) con)))
-      (unless (string= "Shanai Cup" (generic:tier (get-trainer (nth 1 value) con)))
+      (unless (string= "Shanai Cup" (tier (get-trainer (nth 1 value) con)))
         (setq shanai.po.bot::*am-i-currently-battling-p* nil)))))
+
 (defun handle-battle-event (con value type id)
   (declare (ignore id))
 #+ ()  (print (cons type value))
@@ -351,7 +354,7 @@ This does not imply the bot itself was in the battle!"
 (defvar *choice-made* nil)
 (defvar *possible-pokes*
   '(1 2 3 4 5))
-(defvar *i-wanna-switch-p* nil)
+#+ () (defvar *i-wanna-switch-p* nil)
 
 (defun get-active-pokemon (trainer)
   "Get the current active pokemon of TRAINER."
@@ -364,15 +367,8 @@ This does not imply the bot itself was in the battle!"
           (aref team poke-id) active)
     team))
 
-(defun select-random-non-koed-poke (team)
-  (alexandria:random-elt
-   (loop for p across (shanai.team:team-pokemon team)
-      unless (shanai.pokemon:pokemon-koedp p)
-      collect p)))
-
-
 (defun handle-battle-choice (con battle spot)
-  (let* ((me (generic:challenger battle))
+  (let* ((me (challenger battle))
          (my-team (shanai.team:team-pokemon me))
          (koedp (shanai.pokemon:pokemon-koedp (get-active-pokemon (challenger battle)))))
     (if koedp
@@ -383,7 +379,7 @@ This does not imply the bot itself was in the battle!"
                  (po-proto::write-battle-switch-pokemon (shanai.po.battle:battle-id battle)
                                                         (s-util:ensure-stream con)
                                                         :pokemon-slot deploypoke)))
-        (if (and (< 1 (length my-team)) #+ () *i-wanna-switch-p*)
+        (if (and (< 1 (length my-team)))
             (progn
               (let ((r (select-poke battle (challenger battle)
                                     (get-active-pokemon (challenged battle)))))
@@ -394,7 +390,7 @@ This does not imply the bot itself was in the battle!"
                                          (get-active-pokemon (challenger battle))
                                         (get-active-pokemon (challenged battle)))
                      :attack-target (get-opponent-battle-slot-id battle con))
-                    (progn (setq *i-wanna-switch-p* nil)
+                    (progn 
                            (swap-active-team-pokes-by-id my-team r)
                            (po-proto::write-battle-switch-pokemon (shanai.po.battle:battle-id battle)
                                                                   (s-util:ensure-stream con)
@@ -405,13 +401,27 @@ This does not imply the bot itself was in the battle!"
                                          (get-active-pokemon (challenger battle))
                                          (get-active-pokemon (challenged battle)))
              :attack-target (get-opponent-battle-slot-id battle con))))))
+
+
 (defun select-attack (battle active-pokemon opp-pokemon)
   "Returns the id of the attack to execute."
   (declare (ignore battle))
   (let ((scored-moves (compute-move-scores-by-position active-pokemon opp-pokemon)))
-    (position (loop for move in scored-moves
-                 maximizing (or move 0))
-              scored-moves)))
+    (let ((moves (sort (copy-seq scored-moves) #'>)))
+      #+ () (print moves)
+      (let ((rand (random 3))
+            (pid (shanai.pokemon:pokemon-id active-pokemon))
+            (zero-count (count 0 moves)))
+        (let ((possiblepos1 (position (nth 1 moves) scored-moves))
+              (possiblepos2 (position (nth (if (and (= pid 81) (> 2 zero-count))
+                               2
+                               0) moves) scored-moves)))
+          (print (list rand possiblepos1 possiblepos2 moves :scored scored-moves :pid pid :zero-count zero-count))
+          (if (= 0 rand)
+              possiblepos1
+              possiblepos2
+              ))))))
+
 
 (defun select-poke (battle trainer opp-pokemon)
   (declare (ignore battle))
@@ -446,7 +456,6 @@ trainers to participate in it."
           (setq *current-engage-battle* value
                 *pokemon-alive-p* t
                 *depolyed-poke-slot* 0
-                *i-wanna-switch-p* nil
                 *possible-pokes* (list 1 2 3 4 5))
           (setq *current-poke-slot* 0)
           (let ((challenger (get-trainer (getf value :challenger) con))
